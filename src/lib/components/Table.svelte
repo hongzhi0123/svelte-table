@@ -22,6 +22,7 @@
   let localSorting = { ...data.sorting };
   let localFilters: Filters = { ...data.filters };
   let searchTimeouts: Record<string, number> = {}; // Store timeout IDs per column
+  let isSearching = false; // New state to track search-specific loading
 
   // Initialize filters for filterable columns
   $: {
@@ -69,7 +70,9 @@
     if (column?.filterType === 'search') {
       // Apply delay only for search-type columns
       searchTimeouts[key] = window.setTimeout(() => {
-        loadData(localPagination, localSorting, localFilters);
+        loadData(localPagination, localSorting, localFilters).finally(() => {
+          isSearching = false; // Clear search loading state after API call
+        });
       }, 1000); // 1 second delay for search
     } else if (column?.filterType === 'dropdown' || column?.filterable) {
       // Trigger immediately for dropdown-type columns
@@ -153,7 +156,7 @@
             </tr>
         </thead>
         <tbody>
-            {#if loading}
+            {#if loading || isSearching} <!-- Show loading state for both main loading and search loading -->
                 <tr>
                     <td colspan={columns.filter(c => c.visible).length}>Loading...</td>
                 </tr>
