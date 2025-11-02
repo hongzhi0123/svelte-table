@@ -6,14 +6,15 @@
   const tabs = [
     { name: 'Overview', path: '/overview' },
     { name: 'Features', path: '/features' },
-    { name: 'Contact',  path: '/contact' }
+    { name: 'Contact',  path: '/contact' },
+	{ name: 'About',  path: '/about' }
   ];
 
   $: currentPath = $page.url.pathname;
 </script>
 
 <div class="container">
-  <h1 class="title">My Professional App</h1>
+  <h1 class="title">My Test App</h1>
 
   <!-- Tab Navigation -->
   <nav class="tabs" role="tablist" aria-label="Page tabs">
