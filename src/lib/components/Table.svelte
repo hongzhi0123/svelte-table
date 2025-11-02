@@ -34,14 +34,21 @@
     });
   }
 
-  // Handle sorting
+  // Handle sorting - cycles through asc -> desc -> none
   function handleSort(key: string) {
     if (!columns.find(c => c.key === key)?.sortable) return;
 
     if (localSorting.field === key) {
-      localSorting.direction = 
-        localSorting.direction === 'asc' ? 'desc' : 'asc';
+      if (localSorting.direction === 'asc') {
+        // Switch from asc to desc
+        localSorting.direction = 'desc';
+      } else if (localSorting.direction === 'desc') {
+        // Switch from desc to none (clear sorting)
+        localSorting.field = '';
+        localSorting.direction = 'asc'; // Reset direction when clearing
+      }
     } else {
+      // Start sorting (default to asc)
       localSorting.field = key;
       localSorting.direction = 'asc';
     }
@@ -69,6 +76,7 @@
     const column = columns.find(c => c.key === key);
     if (column?.filterType === 'search') {
       // Apply delay only for search-type columns
+      isSearching = true;
       searchTimeouts[key] = window.setTimeout(() => {
         loadData(localPagination, localSorting, localFilters).finally(() => {
           isSearching = false; // Clear search loading state after API call
@@ -108,23 +116,25 @@
                     {#if col.visible}
                         <th>
                             <div class="header-content">
-                                {col.title}
-
-                                {#if col.sortable}
-                                    <button
-                                        class="sort-btn"
+                                <div class="title-sort-container">
+                                    <span class="column-title">{col.title}</span>
+                                    {#if col.sortable}
+                                        <button 
+                                        class="sort-btn-container"
                                         on:click={() => handleSort(col.key)}
-                                    >
-                                        {#if localSorting.field === col.key && localSorting.direction === "asc"}
+                                        title="Cycle through sorting: Ascending → Descending → None"
+                                        >
+                                        <div class="sort-icons">
+                                            <span class="sort-icon {localSorting.field === col.key && localSorting.direction === 'asc' ? 'active' : ''}">
                                             ▲
-                                        {:else if localSorting.field === col.key && localSorting.direction === "desc"}
+                                            </span>
+                                            <span class="sort-icon {localSorting.field === col.key && localSorting.direction === 'desc' ? 'active' : ''}">
                                             ▼
-                                        {:else}
-                                            ⬍
-                                        {/if}
-                                    </button>
-                                {/if}
-
+                                            </span>
+                                        </div>
+                                        </button>
+                                    {/if}
+                                </div>
                                 {#if col.filterable}
                                     {#if col.filterType === 'search'}
                                         <input
@@ -177,7 +187,7 @@
     <!-- Pagination Controls -->
     <div class="pagination">
         <button
-            disabled={localPagination.page <= 1}
+            disabled={localPagination.page <= 1 || isSearching}
             on:click={() => handlePageChange(localPagination.page - 1)}
         >
             Previous
@@ -190,7 +200,7 @@
 
         <button
             disabled={localPagination.page >=
-                Math.ceil(localPagination.total / localPagination.size)}
+                Math.ceil(localPagination.total / localPagination.size) || isSearching}
             on:click={() => handlePageChange(localPagination.page + 1)}
         >
             Next
@@ -222,14 +232,48 @@
         display: flex;
         flex-direction: column;
     }
-
-    .sort-btn {
-        background: none;
-        border: none;
-        font-size: 0.8rem;
-        cursor: pointer;
-        padding: 0;
-    }
+  .title-sort-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+  
+  .column-title {
+    flex-grow: 1;
+  }
+  
+  .sort-btn-container {
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    width: 1.2rem;
+    height: 1.6rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-left: 0.5rem;
+  }
+  
+  .sort-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    align-items: center;
+  }
+  
+  .sort-icon {
+    font-size: 0.7rem;
+    color: #888; /* Gray color by default */
+    line-height: 1;
+  }
+  
+  .sort-icon.active {
+    color: #000; /* Black when active */
+    font-weight: bold;
+  }
 
     input[type="text"] {
         margin-top: 0.25rem;
