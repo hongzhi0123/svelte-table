@@ -22,7 +22,9 @@
   let localSorting = { ...data.sorting };
   let localFilters: Filters = { ...data.filters };
   let searchTimeouts: Record<string, number> = {}; // Store timeout IDs per column
+  let isLoading = false; // New state to manage loading  
   let isSearching = false; // New state to track search-specific loading
+  let currentItems = data.items; // Keep current items during loading
 
   // Initialize filters for filterable columns
   $: {
@@ -34,6 +36,10 @@
     });
   }
 
+  // Update current items when new data arrives
+  $: if (!isLoading && !isSearching && data) {
+    currentItems = data.items;
+  }  
   // Handle sorting - cycles through asc -> desc -> none
   function handleSort(key: string) {
     if (!columns.find(c => c.key === key)?.sortable) return;
@@ -78,8 +84,10 @@
       // Apply delay only for search-type columns
       isSearching = true;
       searchTimeouts[key] = window.setTimeout(() => {
+        // localFilters = { ...localFilters, [key]: value };
         loadData(localPagination, localSorting, localFilters).finally(() => {
           isSearching = false; // Clear search loading state after API call
+        //   localPagination.page = 1; // Reset to first page
         });
       }, 1000); // 1 second delay for search
     } else if (column?.filterType === 'dropdown' || column?.filterable) {
@@ -165,29 +173,30 @@
                 {/each}
             </tr>
         </thead>
-        <tbody>
-            {#if loading || isSearching} <!-- Show loading state for both main loading and search loading -->
-                <tr>
-                    <td colspan={columns.filter(c => c.visible).length}>Loading...</td>
-                </tr>
-            {:else}
-                {#each data.items as item (item.id || item._id)}
-                    <tr>
-                        {#each columns as col}
-                            {#if col.visible}
-                                <td>{item[col.key]}</td>
-                            {/if}
-                        {/each}
-                    </tr>
-                {/each}
+        <tbody class="tbody-with-overlay">
+            {#if isLoading || isSearching} <!-- Show loading state for both main loading and search loading -->
+                <!-- Show overlay instead of clearing table -->
+        <div class="overlay-container">
+          <div class="loading-text">Loading...</div>
+        </div>
             {/if}
+                <!-- Normal rendering when not loading -->
+                {#each currentItems as item (item.id || item._id)}
+                <tr>
+                    {#each columns as col}
+                    {#if col.visible}
+                        <td>{item[col.key]}</td>
+                    {/if}
+                    {/each}
+                </tr>
+                {/each}
         </tbody>
     </table>
 
     <!-- Pagination Controls -->
     <div class="pagination">
         <button
-            disabled={localPagination.page <= 1 || isSearching}
+            disabled={localPagination.page <= 1}
             on:click={() => handlePageChange(localPagination.page - 1)}
         >
             Previous
@@ -200,7 +209,7 @@
 
         <button
             disabled={localPagination.page >=
-                Math.ceil(localPagination.total / localPagination.size) || isSearching}
+                Math.ceil(localPagination.total / localPagination.size)}
             on:click={() => handlePageChange(localPagination.page + 1)}
         >
             Next
@@ -211,6 +220,7 @@
 <style>
     .table-container {
         overflow-x: auto;
+        position: relative;
     }
 
     table {
@@ -227,15 +237,38 @@
     th {
         background-color: #f5f5f5;
     }
+  .tbody-with-overlay {
+    position: relative; /* Container for the overlay */
+  }
+  
+  .overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10; /* Ensure overlay is above table content */
+  }
+  
+  .loading-text {
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+  }
 
-    .header-content {
+  .header-content {
         display: flex;
         flex-direction: column;
     }
-  .title-sort-container {
+  
+    .title-sort-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 0.25rem;
   }
   
