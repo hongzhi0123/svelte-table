@@ -15,7 +15,7 @@
 
     // Define column configuration for this page
     const columns: ColumnConfig[] = [
-        { key: "id", title: "ID", visible: true, sortable: true },
+        { key: "id", title: "ID", visible: true, sortable: true, width: '80px' },
         {
             key: "name",
             title: "Name",

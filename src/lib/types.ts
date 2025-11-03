@@ -4,7 +4,8 @@ export interface ColumnConfig {
     visible: boolean;
     sortable?: boolean;
     filterable?: boolean;
-    filterType?: 'dropdown' | 'search'; // New property to specify filter type
+    filterType?: 'dropdown' | 'search';
+    width?: string;
 }
 
 export interface Pagination {

@@ -40,6 +40,7 @@
   $: if (!isLoading && !isSearching && data) {
     currentItems = data.items;
   }  
+
   // Handle sorting - cycles through asc -> desc -> none
   function handleSort(key: string) {
     if (!columns.find(c => c.key === key)?.sortable) return;
@@ -122,7 +123,7 @@
             <tr>
                 {#each columns as col}
                     {#if col.visible}
-                        <th>
+                        <th style="width: {col.width || 'auto'};">
                             <div class="header-content">
                                 <div class="title-sort-container">
                                     <span class="column-title">{col.title}</span>
@@ -181,11 +182,11 @@
         </div>
             {/if}
                 <!-- Normal rendering when not loading -->
-                {#each currentItems as item (item.id || item._id)}
+                {#each currentItems as item, index}
                 <tr>
                     {#each columns as col}
                     {#if col.visible}
-                        <td>{item[col.key]}</td>
+                        <td style="width: {col.width || 'auto'};">{item[col.key]}</td>
                     {/if}
                     {/each}
                 </tr>
@@ -226,6 +227,7 @@
     table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed; /* Required for column widths to work */
     }
 
     th, td {

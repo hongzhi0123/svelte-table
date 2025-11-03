@@ -121,7 +121,7 @@ export const GET: RequestHandler = async ({ url }) => {
         const dropdownColumns = ['status', 'category']; // Define which fields are filterable
 
         for (const key of dropdownColumns) {
-            const values = new Set(allItems.map(item => item[key]).filter(Boolean));
+            const values = new Set(filteredItems.map(item => item[key]).filter(Boolean));
             options[key] = Array.from(values) as string[];
         }
 
