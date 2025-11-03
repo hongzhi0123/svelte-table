@@ -25,6 +25,8 @@
   let isLoading = false; // New state to manage loading  
   let isSearching = false; // New state to track search-specific loading
   let currentItems = data.items; // Keep current items during loading
+  let showDetailOverlay = false;
+  let selectedItem: any = null;
 
   // Initialize filters for filterable columns
   $: {
@@ -109,6 +111,18 @@
     loadData(localPagination, localSorting, localFilters);
   }
 
+  // Handle row click to show details
+  function showDetails(item: any) {
+    selectedItem = item;
+    showDetailOverlay = true;
+  }
+  
+  // Close detail overlay
+  function closeDetailOverlay() {
+    showDetailOverlay = false;
+    selectedItem = null;
+  }
+
   // Cleanup timeouts when component unmounts
   $: onDestroy(() => {
     for (const key in searchTimeouts) {
@@ -184,10 +198,22 @@
                 <!-- Normal rendering when not loading -->
                 {#each currentItems as item, index}
                 <tr>
-                    {#each columns as col}
-                    {#if col.visible}
-                        <td style="width: {col.width || 'auto'};">{item[col.key]}</td>
-                    {/if}
+                    {#each columns as col, colIndex}
+                      {#if col.visible}
+                          <td style="width: {col.width || 'auto'};">
+                            {#if colIndex === 0} <!-- First column gets the clickable link -->
+                              <button 
+                                class="detail-link" 
+                                on:click={() => showDetails(item)}
+                                title="View details"
+                              >
+                                {item[col.key]}
+                              </button>
+                            {:else}
+                              {item[col.key]}
+                            {/if}
+                          </td>
+                      {/if}
                     {/each}
                 </tr>
                 {/each}
@@ -216,6 +242,27 @@
             Next
         </button>
     </div>
+
+  <!-- Detail Overlay -->
+  {#if showDetailOverlay && selectedItem}
+    <div class="detail-overlay" on:click={closeDetailOverlay}>
+      <div class="detail-content" on:click|stopPropagation>
+        <div class="detail-header">
+          <h2>Item Details</h2>
+          <button class="close-btn" on:click={closeDetailOverlay}>&times;</button>
+        </div>
+        
+        <div class="detail-body">
+          {#each Object.entries(selectedItem) as [key, value]}
+            <div class="detail-row">
+              <span class="detail-key">{key}:</span>
+              <span class="detail-value">{value}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
@@ -261,7 +308,82 @@
     color: #333;
     text-align: center;
   }
-
+  
+  .detail-link {
+    background: none;
+    border: none;
+    color: #007cba;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font: inherit;
+  }
+  
+  .detail-link:hover {
+    color: #005a87;
+  }
+  
+  .detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .detail-content {
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .detail-row {
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .detail-key {
+    font-weight: bold;
+    min-width: 100px;
+  }
+  
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
   .header-content {
         display: flex;
         flex-direction: column;
