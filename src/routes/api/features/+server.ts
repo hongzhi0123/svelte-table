@@ -5,7 +5,7 @@ const allItems = [
     { 'id': 2, 'name': 'Item 2', 'category': 'A', 'status': 'Open', date: '2023-01-01' },
     { 'id': 3, 'name': 'Data 3', 'category': 'B', 'status': 'Open', date: '2023-01-07' },
     { 'id': 4, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 5, 'name': 'Item 2', 'category': 'A', 'status': 'Closed', date: '2021-05-01' },
+    { 'id': 5, 'name': 'Item 2', 'category': '', 'status': 'Closed', date: '2021-05-01' },
     { 'id': 6, 'name': 'Data 1', 'category': 'C', 'status': 'Active', date: '2023-01-01' },
     { 'id': 7, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
     { 'id': 8, 'name': 'Item 3', 'category': 'A', 'status': 'Active', date: '2025-01-01' },
@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
     // Collect filters
     for (const [key, value] of url.searchParams.entries()) {
-        if (['page', 'size', 'sort', 'order'].indexOf(key) === -1 && value) {
+        if (['page', 'size', 'sort', 'order'].indexOf(key) === -1 && (value != null && value !== undefined)) {
             // Define which columns use exact match (dropdown) vs partial match (search)
             const exactMatchColumns = ['status', 'category']; // Dropdown columns            
 
@@ -121,8 +121,13 @@ export const GET: RequestHandler = async ({ url }) => {
         const dropdownColumns = ['status', 'category']; // Define which fields are filterable
 
         for (const key of dropdownColumns) {
-            const values = new Set(filteredItems.map(item => item[key]).filter(Boolean));
-            options[key] = Array.from(values) as string[];
+            const values = new Set(filteredItems.map(item => item[key])); // Include all values including empty strings
+            options[key] = Array.from(values)
+                .sort((a, b) => {
+                    if (a === '') return -1;
+                    if (b === '') return 1;
+                    return a.localeCompare(b);
+                }) as string[];
         }
 
         return options;

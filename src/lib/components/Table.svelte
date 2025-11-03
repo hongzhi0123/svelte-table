@@ -99,6 +99,30 @@
     }
   }
 
+  // Handle dropdown change specifically for distinguishing "All" from empty values
+  function handleDropdownChange(key: string, value: string) {
+    if (value === '__ALL__') {
+      // "All" option selected - remove filter
+      handleFilterChange(key, null);
+    } else if (value === '__EMPTY__') {
+      handleFilterChange(key, '');
+    } else {
+      // Actual value selected
+      handleFilterChange(key, value);
+    }
+  }
+
+  // Get the current value for the select element (with special handling for "All")
+  function getDropdownValue(key: string): string {
+    const currentFilter = localFilters[key];
+    if (currentFilter === null) {
+      return '__ALL__'; // Show "All" when no filter is applied
+    } else if (currentFilter === '') {
+      return '__EMPTY__'; // Show special value for empty string
+    }
+    return currentFilter || ''; // Return actual value or empty string
+  }
+
   // Handle pagination change
   function handlePageChange(page: number) {
     // Clear any pending search timeouts
@@ -168,16 +192,18 @@
                                         />
                                     {:else if col.filterType === 'dropdown'}
                                         <select
-                                            value={localFilters[col.key] || ""}
+                                            value={getDropdownValue(col.key)}
                                             on:change={(e) =>
-                                                handleFilterChange(
+                                                handleDropdownChange(
                                                     col.key,
                                                     e.target.value || null,
                                                 )}
                                         >
-                                            <option value="">All</option>
+                                            <option value="__ALL__">All</option>
                                             {#each filterOptions[col.key] || [] as option}
-                                                <option value={option}>{option}</option>
+                                                <option value={option === '' ? '__EMPTY__' : option}>
+                                                  {option === '' ? '(Empty)' : option}
+                                                </option>
                                             {/each}
                                         </select>
                                     {/if}
