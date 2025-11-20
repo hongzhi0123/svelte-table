@@ -11,7 +11,7 @@
     { name: 'About',  path: '/about' }
   ];
 
-  $: currentPath = $page.url.pathname;
+  const currentPath = $derived($page.url.pathname);
 </script>
 
 <div class="container">
