@@ -6,6 +6,7 @@
     { name: 'Overview', path: '/overview' },
     { name: 'Features', path: '/features' },
     { name: 'Contact',  path: '/contact' },
+    { name: 'Process', path: '/process' },
 	{ name: 'About',  path: '/about' }
   ];
 
