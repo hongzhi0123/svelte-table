@@ -28,13 +28,19 @@
             const departmentMatch =
                 selectedDepartments.length === 0 ||
                 selectedDepartments.includes(item.department);
-            console.log("Department Match for", item.name, ":", departmentMatch);
+            console.log(
+                "Department Match for",
+                item.name,
+                ":",
+                departmentMatch,
+            );
             const statusMatch =
                 selectedStatuses.length === 0 ||
                 selectedStatuses.includes(item.status);
             console.log("Status Match for", item.name, ":", statusMatch);
             return departmentMatch && statusMatch;
-        }));
+        }),
+    );
 
     // Debug logging
     $effect(() => {
@@ -70,15 +76,15 @@
         <tr>
             <th>ID</th>
             <th>Name</th>
-            <th>
+            <th class="filter-header">
                 Department
                 <MultiSelect
                     values={departments}
                     bind:selected={selectedDepartments}
-                    placeholder="Filter departments"
+                    placeholder="All departments"
                 />
             </th>
-            <th>
+            <th class="filter-header">
                 Status
                 <MultiSelect
                     values={statuses}
@@ -137,14 +143,56 @@
     table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 14px;
+        position: relative; /* Create stacking context */
     }
     th,
     td {
         border: 1px solid #ddd;
         padding: 8px;
         text-align: left;
+        vertical-align: top;
     }
     th {
         background-color: #f2f2f2;
+        font-weight: 600;
+        color: #333;
     }
+  .filter-header {
+    position: relative;
+    overflow: visible; /* Allow dropdown to overflow */
+  }
+  
+  tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .no-data {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 40px !important;
+  }
+  
+  .status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  .status-active {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .status-on-leave {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  .status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+  }    
 </style>
