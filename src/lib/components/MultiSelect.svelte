@@ -16,6 +16,7 @@
     let searchTerm = $state("");
     let dropdown = $state();
     let trigger = $state();
+    let dropdownStyle = $state({});
 
     // Debug logging
     $effect(() => {
@@ -39,37 +40,46 @@
         if (isOpen) {
             searchTerm = "";
             // Position dropdown on next tick to ensure DOM is updated
-            // setTimeout(positionDropdown, 0);
+            setTimeout(positionDropdown, 0);
         }
     }
 
     // Position dropdown relative to trigger element
-    // function positionDropdown() {
-    //     if (!dropdown || !trigger) return;
+    function positionDropdown() {
+        if (!trigger) return;
 
-    //     const triggerRect = trigger.getBoundingClientRect();
-    //     const dropdownElement = dropdown.querySelector(".dropdown");
+        const triggerRect = trigger.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
 
-    //     if (dropdownElement) {
-    //         // Position below the trigger
-    //         dropdownElement.style.top = `${triggerRect.bottom}px`;
-    //         dropdownElement.style.left = `${triggerRect.left}px`;
-    //         dropdownElement.style.width = `${triggerRect.width}px`;
+        // Calculate available space
+        const spaceBelow = viewportHeight - triggerRect.bottom;
+        const spaceAbove = triggerRect.top;
 
-    //         // Ensure dropdown stays in viewport
-    //         const viewportHeight = window.innerHeight;
-    //         const dropdownHeight = dropdownElement.offsetHeight;
-    //         const spaceBelow = viewportHeight - triggerRect.bottom;
+        // Default: position below
+        let top = triggerRect.bottom + window.scrollY;
+        let left = triggerRect.left + window.scrollX;
+        let maxHeight = Math.min(300, spaceBelow - 10); // 10px margin
 
-    //         if (
-    //             spaceBelow < dropdownHeight &&
-    //             triggerRect.top > dropdownHeight
-    //         ) {
-    //             // Not enough space below, position above
-    //             dropdownElement.style.top = `${triggerRect.top - dropdownHeight}px`;
-    //         }
-    //     }
-    // }
+        // If not enough space below, position above
+        if (spaceBelow < 200 && spaceAbove > spaceBelow) {
+            top = triggerRect.top + window.scrollY - 10; // 10px margin above
+            maxHeight = Math.min(300, spaceAbove - 10);
+        }
+
+        // Ensure dropdown doesn't go off-screen horizontally
+        const dropdownWidth = triggerRect.width;
+        if (left + dropdownWidth > viewportWidth) {
+            left = viewportWidth - dropdownWidth - 10;
+        }
+
+        dropdownStyle = {
+            top: `${top}px`,
+            left: `${left}px`,
+            width: `${dropdownWidth}px`,
+            maxHeight: `${maxHeight}px`,
+        };
+    }
 
     // Handle selection change
     function handleChange(value, event) {
@@ -90,18 +100,26 @@
         }
 
         // Reposition on window resize
-        // function handleResize() {
-        //     if (isOpen) {
-        //         positionDropdown();
-        //     }
-        // }
+        function handleResize() {
+            if (isOpen) {
+                positionDropdown();
+            }
+        }
+
+        function handleScroll() {
+            if (isOpen) {
+                positionDropdown();
+            }
+        }
 
         document.addEventListener("click", handleClickOutside);
-        // window.addEventListener("resize", handleResize);
+        window.addEventListener("resize", handleResize);
+        window.addEventListener("scroll", handleScroll, true);
 
         return () => {
             document.removeEventListener("click", handleClickOutside);
-            // window.removeEventListener("resize", handleResize);
+            window.removeEventListener("resize", handleResize);
+            window.addEventListener("scroll", handleScroll, true);
         };
     });
 
@@ -120,7 +138,7 @@
     </div>
 
     {#if isOpen}
-        <div class="dropdown-overlay">
+        <div class="dropdown-overlay" style={dropdownStyle}>
             <div class="dropdown">
                 <input
                     type="text"
@@ -151,7 +169,7 @@
     .multiselect {
         position: relative;
         display: inline-block;
-        width: 200px;
+        width: 100%;
     }
 
     .header {
@@ -185,22 +203,18 @@
     }
 
     .dropdown-overlay {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        right: 0;
-        z-index: 1000;
+        position: fixed;
+        z-index: 10000; /* Very high z-index to ensure it's above everything */
     }
 
     .dropdown {
         border: 1px solid #ccc;
         border-radius: 4px;
         background: white;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        margin-top: 4px;
-        max-height: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
 
     .search {
@@ -211,11 +225,16 @@
         border-bottom: 1px solid #e0e0e0;
         font-size: 14px;
         outline: none;
+        flex-shrink: 0;
+    }
+
+    .search:focus {
+        border-color: #007acc;
     }
 
     .options {
         overflow-y: auto;
-        max-height: 250px;
+        max-height: 100px; /* Minimum height to ensure usability */
     }
 
     .option {
@@ -224,6 +243,7 @@
         padding: 8px 12px;
         cursor: pointer;
         font-size: 14px;
+        flex-shrink: 0;
     }
 
     .option:hover {
@@ -234,7 +254,4 @@
         margin-right: 8px;
     }
 
-    .multiselect.open .arrow {
-        transform: rotate(180deg);
-    }
 </style>
