@@ -3,9 +3,23 @@
 	"configurations": [
 		{
 			"command": "npm run dev",
-			"name": "Run development server",
+			"name": "Launch server",
 			"request": "launch",
 			"type": "node-terminal"
+		},
+
+		{
+			"type": "msedge",
+			"request": "launch",
+			"name": "Launch Edge",
+			"url": "http://127.0.0.1:5173",
+			"webRoot": "${workspaceFolder}"
+		}
+	],
+	"compounds": [
+		{
+			"name": "Both",
+			"configurations": ["Launch server", "Launch Edge"]
 		}
 	]
 }
