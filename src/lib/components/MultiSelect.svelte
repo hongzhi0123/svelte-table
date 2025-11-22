@@ -1,14 +1,8 @@
 <!-- MultiSelect.svelte -->
 <script>
-    // import { stat } from 'fs';
-
-    //   export let values = [];
-    //   export let selected = [];
-    //   export let placeholder = "Filter...";
-
     let {
         values = [],
-        selected = $bindable([]),
+        selected = $bindable(),
         placeholder = "Filter...",
     } = $props();
 
@@ -44,7 +38,7 @@
         }
     }
 
-    // Position dropdown relative to trigger element
+    // Position dropdown relative to viewport
     function positionDropdown() {
         if (!trigger) return;
 
@@ -57,13 +51,13 @@
         const spaceAbove = triggerRect.top;
 
         // Default: position below
-        let top = triggerRect.bottom + window.scrollY;
-        let left = triggerRect.left + window.scrollX;
+        let top = triggerRect.bottom;
+        let left = triggerRect.left;
         let maxHeight = Math.min(300, spaceBelow - 10); // 10px margin
 
         // If not enough space below, position above
         if (spaceBelow < 200 && spaceAbove > spaceBelow) {
-            top = triggerRect.top + window.scrollY - 10; // 10px margin above
+            top = triggerRect.top - 10; // 10px margin above
             maxHeight = Math.min(300, spaceAbove - 10);
         }
 
@@ -72,6 +66,9 @@
         if (left + dropdownWidth > viewportWidth) {
             left = viewportWidth - dropdownWidth - 10;
         }
+
+        // Ensure left doesn't go negative
+        left = Math.max(10, left);
 
         dropdownStyle = {
             top: `${top}px`,
@@ -90,8 +87,8 @@
         }
     }
 
-    // Close dropdown when clicking outside
 
+    // Close dropdown when clicking outside and reposition on resize/scroll
     $effect(() => {
         function handleClickOutside(event) {
             if (dropdown && !dropdown.contains(event.target)) {
@@ -99,7 +96,6 @@
             }
         }
 
-        // Reposition on window resize
         function handleResize() {
             if (isOpen) {
                 positionDropdown();
@@ -119,7 +115,7 @@
         return () => {
             document.removeEventListener("click", handleClickOutside);
             window.removeEventListener("resize", handleResize);
-            window.addEventListener("scroll", handleScroll, true);
+            window.removeEventListener("scroll", handleScroll, true);
         };
     });
 
@@ -138,7 +134,13 @@
     </div>
 
     {#if isOpen}
-        <div class="dropdown-overlay" style={dropdownStyle}>
+        <div
+            class="dropdown-overlay"
+            style:left={dropdownStyle.left}
+            style:top={dropdownStyle.top}
+            style:width={dropdownStyle.width}
+            style:max-height={dropdownStyle.maxHeight}
+        >
             <div class="dropdown">
                 <input
                     type="text"
@@ -234,7 +236,7 @@
 
     .options {
         overflow-y: auto;
-        max-height: 100px; /* Minimum height to ensure usability */
+        min-height: 100px; /* Minimum height to ensure usability */
     }
 
     .option {
