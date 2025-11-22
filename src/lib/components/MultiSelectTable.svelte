@@ -4,9 +4,13 @@
 
     let { data = [] } = $props();
 
-    // Filter state
-    let selectedDepartments: string[] = $state([]);
-    let selectedStatuses: string[] = $state([]);
+    // Initialize with all departments selected
+    let selectedDepartments: string[] = $state([
+        ...new Set(data.map((item) => item.department)),
+    ]);
+    let selectedStatuses: string[] = $state([
+        ...new Set(data.map((item) => item.status)),
+    ]);
 
     // Get unique department values
     let departments = $derived([
@@ -15,29 +19,28 @@
     let statuses = $derived([...new Set(data.map((item) => item.status))]);
 
     // Filter data based on selection
-    // let filteredData = $derived(
-    //     selectedDepartments.length > 0
-    //         ? data.filter((item) =>
-    //               selectedDepartments.includes(item.department),
-    //           )
-    //         : data,
-    // );
-
     let filteredData = $derived(
         data.filter((item) => {
+            // If no departments are selected, show NO departments (empty table)
             const departmentMatch =
-                selectedDepartments.length === 0 ||
-                selectedDepartments.includes(item.department);
+                selectedDepartments.length > 0
+                    ? selectedDepartments.includes(item.department)
+                    : false;
             console.log(
                 "Department Match for",
                 item.name,
                 ":",
                 departmentMatch,
             );
+
+            // If no statuses are selected, show NO statuses (empty table)
             const statusMatch =
-                selectedStatuses.length === 0 ||
-                selectedStatuses.includes(item.status);
+                selectedStatuses.length > 0
+                    ? selectedStatuses.includes(item.status)
+                    : false;
             console.log("Status Match for", item.name, ":", statusMatch);
+
+            // Both conditions must be true to show the item
             return departmentMatch && statusMatch;
         }),
     );
@@ -81,7 +84,7 @@
                 <MultiSelect
                     values={departments}
                     bind:selected={selectedDepartments}
-                    placeholder="All departments"
+                    placeholder="Select departments"
                 />
             </th>
             <th class="filter-header">
@@ -89,36 +92,65 @@
                 <MultiSelect
                     values={statuses}
                     bind:selected={selectedStatuses}
-                    placeholder="All statuses"
+                    placeholder="Select statuses"
                 />
             </th>
         </tr>
     </thead>
     <tbody>
-        {#if filteredData.length > 0}
-            {#each filteredData as item}
-                <tr>
-                    <td>{item.id}</td>
-                    <td>{item.name}</td>
-                    <td>{item.department}</td>
-                    <td>
-                        <span
-                            class="status-badge {getStatusClass(item.status)}"
-                        >
-                            {item.status}
-                        </span>
-                    </td>
-                </tr>
-            {/each}
+        {#each filteredData as item}
+            <tr>
+                <td>{item.id}</td>
+                <td>{item.name}</td>
+                <td>{item.department}</td>
+                <td>
+                    <span class="status-badge {getStatusClass(item.status)}">
+                        {item.status}
+                    </span>
+                </td>
+            </tr>
         {:else}
             <tr>
-                <td colspan="4" class="no-data"
-                    >No records found matching your filters</td
-                >
+                <td colspan="4" class="no-data">
+                    {#if selectedDepartments.length === 0 && selectedStatuses.length === 0}
+                        No filters selected. Please select at least one
+                        department and one status to see results.
+                    {:else}
+                        No records found matching your current filters.
+                        <br />
+                        <small>
+                            {#if selectedDepartments.length > 0}
+                                Departments: {selectedDepartments.join(", ")}
+                            {/if}
+                            {#if selectedStatuses.length > 0}
+                                {#if selectedDepartments.length > 0}
+                                    |
+                                {/if}
+                                Statuses: {selectedStatuses.join(", ")}
+                            {/if}
+                        </small>
+                    {/if}
+                </td>
             </tr>
-        {/if}
+        {/each}
     </tbody>
 </table>
+
+<div class="filter-info">
+    Showing {filteredData.length} of {data.length} records
+    {#if selectedDepartments.length > 0 || selectedStatuses.length > 0}
+        •
+        {#if selectedDepartments.length > 0}
+            Departments: {selectedDepartments.join(", ")}
+        {/if}
+        {#if selectedStatuses.length > 0}
+            {#if selectedDepartments.length > 0}
+                •
+            {/if}
+            Statuses: {selectedStatuses.join(", ")}
+        {/if}
+    {/if}
+</div>
 
 <style>
     .debug-info {
@@ -146,53 +178,69 @@
         font-size: 14px;
         position: relative; /* Create stacking context */
     }
+
     th,
     td {
-        border: 1px solid #ddd;
-        padding: 8px;
+        border: 1px solid #e0e0e0;
+        padding: 12px;
         text-align: left;
         vertical-align: top;
     }
+
     th {
-        background-color: #f2f2f2;
+        background-color: #f8f9fa;
         font-weight: 600;
         color: #333;
     }
-  .filter-header {
-    position: relative;
-    overflow: visible; /* Allow dropdown to overflow */
-  }
-  
-  tbody tr:hover {
-    background-color: #f8f9fa;
-  }
-  
-  .no-data {
-    text-align: center;
-    color: #666;
-    font-style: italic;
-    padding: 40px !important;
-  }
-  
-  .status-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  
-  .status-active {
-    background-color: #d4edda;
-    color: #155724;
-  }
-  
-  .status-on-leave {
-    background-color: #fff3cd;
-    color: #856404;
-  }
-  
-  .status-inactive {
-    background-color: #f8d7da;
-    color: #721c24;
-  }    
+    .filter-header {
+        position: relative;
+        overflow: visible; /* Allow dropdown to overflow */
+    }
+
+    tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .no-data {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 40px !important;
+    }
+
+    .no-data small {
+        font-size: 12px;
+        color: #999;
+    }
+
+    .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-on-leave {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-inactive {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .filter-info {
+        margin-top: 16px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        font-size: 14px;
+        color: #666;
+    }
 </style>

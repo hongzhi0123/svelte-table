@@ -28,6 +28,17 @@
         ),
     );
 
+    // Check if all values are selected
+    let allSelected = $derived(
+        values.length > 0 && values.every((v) => selected.includes(v)),
+    );
+
+    // Check if all filtered values are selected (for Select All in filtered view)
+    let allFilteredSelected = $derived(
+        filteredValues.length > 0 &&
+            filteredValues.every((v) => selected.includes(v)),
+    );
+
     // Toggle dropdown visibility
     function toggleDropdown() {
         isOpen = !isOpen;
@@ -78,7 +89,7 @@
         };
     }
 
-    // Handle selection change
+    // Handle selection change for individual options
     function handleChange(value, event) {
         if (event.target.checked) {
             selected = [...selected, value];
@@ -87,6 +98,35 @@
         }
     }
 
+    // Handle All option selection
+    function handleAllChange(event) {
+        if (event.target.checked) {
+            // Select all values (including those not in current filter)
+            selected = [...values];
+        } else {
+            // Clear all selections
+            selected = [];
+        }
+    }
+
+    // Handle Select All in filtered view
+    function handleSelectAllFiltered() {
+        if (allFilteredSelected) {
+            // Remove all filtered values from selection
+            selected = selected.filter((v) => !filteredValues.includes(v));
+        } else {
+            // Add all filtered values that aren't already selected
+            const newSelections = filteredValues.filter(
+                (v) => !selected.includes(v),
+            );
+            selected = [...selected, ...newSelections];
+        }
+    }
+
+    // Clear all selections
+    function clearAll() {
+        selected = [];
+    }
 
     // Close dropdown when clicking outside and reposition on resize/scroll
     $effect(() => {
@@ -128,7 +168,11 @@
 <div class="multiselect" bind:this={dropdown}>
     <div class="header" bind:this={trigger} onclick={toggleDropdown}>
         <span class="placeholder">
-            {selected.length > 0 ? `${selected.length} selected` : placeholder}
+            {allSelected
+                ? "All"
+                : selected.length > 0
+                  ? `${selected.length} selected`
+                  : placeholder}
         </span>
         <span class="arrow">{isOpen ? "▲" : "▼"}</span>
     </div>
@@ -150,6 +194,36 @@
                     onclick={handleClick}
                 />
                 <div class="options">
+                    <!-- All option -->
+                    <label class="option all-option">
+                        <input
+                            type="checkbox"
+                            checked={allSelected}
+                            onchange={handleAllChange}
+                            onclick={handleClick}
+                        />
+                        <span class="all-text">All</span>
+                    </label>
+
+                    <div class="divider"></div>
+
+                    <!-- Select All Filtered option (only shown when searching) -->
+                    {#if searchTerm && filteredValues.length > 0}
+                        <label class="option select-all-filtered">
+                            <input
+                                type="checkbox"
+                                checked={allFilteredSelected}
+                                onchange={handleSelectAllFiltered}
+                                onclick={handleClick}
+                            />
+                            <span class="select-all-text"
+                                >Select all "{searchTerm}"</span
+                            >
+                        </label>
+                        <div class="divider"></div>
+                    {/if}
+
+                    <!-- Individual options -->
                     {#each filteredValues as value}
                         <label class="option">
                             <input
@@ -161,6 +235,15 @@
                             {value}
                         </label>
                     {/each}
+
+                    <!-- Clear All button -->
+                    {#if selected.length > 0}
+                        <div class="actions">
+                            <button class="clear-btn" onclick={clearAll}
+                                >Clear All</button
+                            >
+                        </div>
+                    {/if}
                 </div>
             </div>
         </div>
@@ -256,4 +339,50 @@
         margin-right: 8px;
     }
 
+    .all-option {
+        font-weight: 600;
+        background-color: #f8f9fa;
+    }
+
+    .all-text {
+        font-weight: 600;
+    }
+
+    .select-all-filtered {
+        font-style: italic;
+        background-color: #f0f8ff;
+    }
+
+    .select-all-text {
+        font-style: italic;
+        color: #007acc;
+    }
+
+    .divider {
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 4px 0;
+    }
+
+    .actions {
+        padding: 8px 12px;
+        border-top: 1px solid #e0e0e0;
+        background-color: #f8f9fa;
+    }
+
+    .clear-btn {
+        background: none;
+        border: 1px solid #dc3545;
+        color: #dc3545;
+        padding: 4px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        width: 100%;
+    }
+
+    .clear-btn:hover {
+        background-color: #dc3545;
+        color: white;
+    }
 </style>
