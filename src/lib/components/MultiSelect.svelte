@@ -11,6 +11,7 @@
     let dropdown = $state();
     let trigger = $state();
     let dropdownStyle = $state({});
+    let transformStyle = $state("");
 
     // Debug logging
     $effect(() => {
@@ -87,6 +88,9 @@
             width: `${dropdownWidth}px`,
             maxHeight: `${maxHeight}px`,
         };
+
+        // Reset transform for initial positioning
+        transformStyle = "translate3d(0, 0, 0)";
     }
 
     // Handle selection change for individual options
@@ -128,6 +132,35 @@
         selected = [];
     }
 
+    // Use a more efficient scroll handler with requestAnimationFrame
+    let scrollAnimationFrame = $state(null);
+
+    function handleScroll() {
+        if (!isOpen || !trigger) return;
+
+        // Cancel previous animation frame to avoid multiple updates
+        if (scrollAnimationFrame) {
+            cancelAnimationFrame(scrollAnimationFrame);
+        }
+
+        // Use requestAnimationFrame for smoother updates
+        scrollAnimationFrame = requestAnimationFrame(() => {
+            const triggerRect = trigger.getBoundingClientRect();
+
+            // Calculate new position using transform for better performance
+            const newTop = triggerRect.bottom;
+            const currentTop = parseFloat(dropdownStyle.top || "0");
+            const deltaY = newTop - currentTop;
+
+            // Only update transform if position changed significantly
+            if (Math.abs(deltaY) > 0.5) {
+                transformStyle = `translate3d(0, ${deltaY}px, 0)`;
+            }
+
+            scrollAnimationFrame = null;
+        });
+    }
+
     // Close dropdown when clicking outside and reposition on resize/scroll
     $effect(() => {
         function handleClickOutside(event) {
@@ -142,20 +175,20 @@
             }
         }
 
-        function handleScroll() {
-            if (isOpen) {
-                positionDropdown();
-            }
-        }
-
         document.addEventListener("click", handleClickOutside);
         window.addEventListener("resize", handleResize);
-        window.addEventListener("scroll", handleScroll, true);
+
+        // Use passive scroll listener for better performance
+        window.addEventListener("scroll", handleScroll, { passive: true });
 
         return () => {
             document.removeEventListener("click", handleClickOutside);
             window.removeEventListener("resize", handleResize);
-            window.removeEventListener("scroll", handleScroll, true);
+            window.removeEventListener("scroll", handleScroll);
+
+            if (scrollAnimationFrame) {
+                cancelAnimationFrame(scrollAnimationFrame);
+            }
         };
     });
 
@@ -184,6 +217,7 @@
             style:top={dropdownStyle.top}
             style:width={dropdownStyle.width}
             style:max-height={dropdownStyle.maxHeight}
+            style:transform={transformStyle}
         >
             <div class="dropdown">
                 <input
