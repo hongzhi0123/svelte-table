@@ -8,7 +8,8 @@
     { name: 'Contact',  path: '/contact' },
     { name: 'Process', path: '/process' },
     { name: 'Update', path: '/update' },
-    { name: 'About',  path: '/about' }
+    { name: 'Multi',  path: '/multi' },
+    { name: 'Simple', path: '/simple' },
   ];
 
   const currentPath = $derived($page.url.pathname);

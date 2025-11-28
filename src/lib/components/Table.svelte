@@ -1,4 +1,5 @@
 <script lang="ts">
+    import { fetchTableData } from '$lib/api';
     import type {
       ColumnConfig,
       TableData,
@@ -6,14 +7,14 @@
       Sorting,
       Filters
     } from '$lib/types';
-    import { onDestroy } from 'svelte';
+    import { onDestroy, onMount } from 'svelte';
 
-    let { data,
-          columns,
-          loading = false,
-          filterOptions = {},
-          loadData
+    let { columns,
+          endpoint
         } = $props();
+
+  let data: TableData = $state({ items: [], pagination: { page: 1, size: 10, total: 0 }, sorting: { field: 'id', direction: 'asc' }, filters: {} });
+  let filterOptions: Record<string, string[]> = $state({});
 
   let localPagination = $derived({ ...data.pagination });
   let localSorting = $derived({ ...data.sorting });
@@ -25,6 +26,38 @@
   let showDetailOverlay = $state(false);
   let selectedItem: any = $state(null);
 
+    async function loadData(
+        pagination: Pagination,
+        sorting: Sorting,
+        filters: Filters,
+    ) {
+        // loading = true;
+        try {
+            const response = await fetchTableData(
+                endpoint,
+                pagination,
+                sorting,
+                filters,
+            );
+            data = response.data;
+            filterOptions = response.filterOptions;
+            console.log("Data loaded: ", data);
+        } catch (error) {
+            console.error("Error loading ", error);
+        } finally {
+            // loading = false;
+        }
+    }
+
+    // Initial load
+    onMount(() => {
+        loadData(
+            { page: 1, size: 10, total: 0 },
+            { field: "id", direction: "asc" },
+            {},
+        );
+    });
+      
   // Initialize filters for filterable columns
   $effect(() => {
     const filterableCols = columns.filter(c => c.filterable);
@@ -38,8 +71,10 @@
   // Update current items when new data arrives
   $effect(() =>{
      if (!isLoading && !isSearching && data) {
-    currentItems = data.items;
-  } }); 
+      currentItems = data.items;
+      localPagination = { ...data.pagination };
+    }
+  }); 
 
   // Handle sorting - cycles through asc -> desc -> none
   function handleSort(key: string) {

@@ -1,40 +1,47 @@
+import { DataStore } from '$lib/stores/regafi_payment';
 import type { RequestHandler } from './$types';
 
-const allItems = [
-    { 'id': 1, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 2, 'name': 'Item 2', 'category': 'A', 'status': 'Open', date: '2023-01-01' },
-    { 'id': 3, 'name': 'Data 3', 'category': 'B', 'status': 'Open', date: '2023-01-07' },
-    { 'id': 4, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 5, 'name': 'Item 2', 'category': '', 'status': 'Closed', date: '2021-05-01' },
-    { 'id': 6, 'name': 'Data 1', 'category': 'C', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 7, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 8, 'name': 'Item 3', 'category': 'A', 'status': 'Active', date: '2025-01-01' },
-    { 'id': 9, 'name': 'Item 1', 'category': 'C', 'status': 'Open', date: '2023-01-01' },
-    { 'id': 10, 'name': 'Data 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 11, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-02-01' },
-    { 'id': 12, 'name': 'Item 1', 'category': 'B', 'status': 'Active', date: '2023-01-01' },
-    { 'id': 13, 'name': 'Item 3', 'category': 'A', 'status': 'Closed', date: '2023-01-01' },
-    { 'id': 14, 'name': 'Data 1', 'category': 'D', 'status': 'Active', date: '2020-01-01' },
-    { 'id': 15, 'name': 'Item 1', 'category': 'A', 'status': 'Closed', date: '2021-01-01' },
-    { 'id': 16, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-12-01' },
-]; // Replace with actual data
+// const allItems = [
+//     { 'id': 1, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 2, 'name': 'Item 2', 'category': 'A', 'status': 'Open', date: '2023-01-01' },
+//     { 'id': 3, 'name': 'Data 3', 'category': 'B', 'status': 'Open', date: '2023-01-07' },
+//     { 'id': 4, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 5, 'name': 'Item 2', 'category': '', 'status': 'Closed', date: '2021-05-01' },
+//     { 'id': 6, 'name': 'Data 1', 'category': 'C', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 7, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 8, 'name': 'Item 3', 'category': 'A', 'status': 'Active', date: '2025-01-01' },
+//     { 'id': 9, 'name': 'Item 1', 'category': 'C', 'status': 'Open', date: '2023-01-01' },
+//     { 'id': 10, 'name': 'Data 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 11, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-02-01' },
+//     { 'id': 12, 'name': 'Item 1', 'category': 'B', 'status': 'Active', date: '2023-01-01' },
+//     { 'id': 13, 'name': 'Item 3', 'category': 'A', 'status': 'Closed', date: '2023-01-01' },
+//     { 'id': 14, 'name': 'Data 1', 'category': 'D', 'status': 'Active', date: '2020-01-01' },
+//     { 'id': 15, 'name': 'Item 1', 'category': 'A', 'status': 'Closed', date: '2021-01-01' },
+//     { 'id': 16, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-12-01' },
+// ]; // Replace with actual data
 // const total = allItems.length; // Replace with actual count
 
+
 // Example function to get distinct values for filter options
-async function getFilterOptions() {
-    // Replace with your actual database query to get distinct values
-    // Example:
-    // const statuses = await db.distinct('status');
-    // const categories = await db.distinct('category');
-    // return { status: statuses, category: categories };
+// async function getFilterOptions() {
+//     // Replace with your actual database query to get distinct values
+//     // Example:
+//     // const statuses = await db.distinct('status');
+//     // const categories = await db.distinct('category');
+//     // return { status: statuses, category: categories };
 
-    // Placeholder implementation
-    return {
-        status: ['Active', 'Inactive', 'Pending'],
-        category: ['A', 'B', 'C']
-    };
+//     // Placeholder implementation
+//     return {
+//         status: ['Active', 'Inactive', 'Pending'],
+//         category: ['A', 'B', 'C']
+//     };
+// }
+
+interface FilterOption {
+    value: string;
+    count: number;
+    isAvailable: boolean;
 }
-
 
 export const GET: RequestHandler = async ({ url }) => {
     // Extract parameters
@@ -49,7 +56,7 @@ export const GET: RequestHandler = async ({ url }) => {
     for (const [key, value] of url.searchParams.entries()) {
         if (['page', 'size', 'sort', 'order'].indexOf(key) === -1 && (value != null && value !== undefined)) {
             // Define which columns use exact match (dropdown) vs partial match (search)
-            const exactMatchColumns = ['status', 'category']; // Dropdown columns            
+            const exactMatchColumns = ['status', 'category', 'type']; // Dropdown columns            
 
             if (exactMatchColumns.includes(key)) {
                 filters[key] = value; // Exact match for dropdown filters
@@ -59,34 +66,37 @@ export const GET: RequestHandler = async ({ url }) => {
         }
     }
 
+    const tppStore = new DataStore();
+    const allItems = await tppStore.getAll();
+
     // 1. APPLY EXACT MATCH FILTERS (dropdown-style)
     let filteredItems = allItems;
     if (Object.keys(filters).length > 0) {
         filteredItems = allItems.filter(item => {
-        for (const [key, value] of Object.entries(filters)) {
-            if (item[key] != value) { // Use != for loose comparison
-            return false;
+            for (const [key, value] of Object.entries(filters)) {
+                if (item[key] != value) { // Use != for loose comparison
+                    return false;
+                }
             }
-        }
-        return true;
+            return true;
         });
     }
 
-     // 2. APPLY PARTIAL MATCH SEARCH (search input-style)
+    // 2. APPLY PARTIAL MATCH SEARCH (search input-style)
     if (Object.keys(searchFilters).length > 0) {
         filteredItems = filteredItems.filter(item => {
-        for (const [key, value] of Object.entries(searchFilters)) {
-            if (typeof item[key] === 'string' && 
-                !item[key].toLowerCase().includes(value.toLowerCase())) {
-            return false; // Item doesn't match search for this column
-            }
-            // Add other type checks if needed (e.g., numbers, dates)
-            else if (typeof item[key] !== 'string' && 
+            for (const [key, value] of Object.entries(searchFilters)) {
+                if (typeof item[key] === 'string' &&
+                    !item[key].toLowerCase().includes(value.toLowerCase())) {
+                    return false; // Item doesn't match search for this column
+                }
+                // Add other type checks if needed (e.g., numbers, dates)
+                else if (typeof item[key] !== 'string' &&
                     item[key] != value) { // Use != for loose comparison
-            return false;
+                    return false;
+                }
             }
-        }
-        return true; // Item matches all searches
+            return true; // Item matches all searches
         });
     }
 
@@ -116,18 +126,36 @@ export const GET: RequestHandler = async ({ url }) => {
 
     // 4. GENERATE FILTER OPTIONS FROM ORIGINAL DATASET
     const getFilterOptions = () => {
-        const options: Record<string, string[]> = {};
+        const options: Record<string, FilterOption[]> = {};
         // Define which columns should have dropdown filters
-        const dropdownColumns = ['status', 'category']; // Define which fields are filterable
+        const dropdownColumns = ['status', 'type', 'category']; // Define which fields are filterable
 
         for (const key of dropdownColumns) {
-            const values = new Set(filteredItems.map(item => item[key])); // Include all values including empty strings
-            options[key] = Array.from(values)
+            // 1. Get ALL possible values from the full dataset
+            const allValues = new Set(allItems.map(item => item[key]));
+
+            // 2. Count occurrences in the CURRENT filtered result set
+            const valueCounts = new Map<string, number>();
+            for (const item of filteredItems) {
+                const val = item[key];
+                valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
+            }
+
+            // 3. Build FilterOption array with availability info
+            options[key] = Array.from(allValues).map(value => ({
+                value,
+                count: valueCounts.get(value) || 0,
+                isAvailable: valueCounts.has(value) && valueCounts.get(value)! > 0
+            }))
                 .sort((a, b) => {
-                    if (a === '') return -1;
-                    if (b === '') return 1;
-                    return a.localeCompare(b);
-                }) as string[];
+                    // Sort: available first, then by count (desc), then alphabetically
+                    if (a.isAvailable && !b.isAvailable) return -1;
+                    if (!a.isAvailable && b.isAvailable) return 1;
+                    if (a.count !== b.count) return b.count - a.count; // Higher counts first
+                    if (a.value === '') return -1; // Empty strings at top
+                    if (b.value === '') return 1;
+                    return a.value.localeCompare(b.value);
+                });
         }
 
         return options;
