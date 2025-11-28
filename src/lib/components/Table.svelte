@@ -8,40 +8,38 @@
     } from '$lib/types';
     import { onDestroy } from 'svelte';
 
-  export let data: TableData;
-  export let columns: ColumnConfig[];
-  export let loading: boolean = false;
-  export let filterOptions: Record<string, string[]> = {}; // Pre-fetched filter options from server
-  export let loadData: (
-    pagination: Pagination,
-    sorting: Sorting,
-    filters: Filters
-  ) => Promise<void>;
+    let { data,
+          columns,
+          loading = false,
+          filterOptions = {},
+          loadData
+        } = $props();
 
-  let localPagination = { ...data.pagination };
-  let localSorting = { ...data.sorting };
-  let localFilters: Filters = { ...data.filters };
+  let localPagination = $derived({ ...data.pagination });
+  let localSorting = $derived({ ...data.sorting });
+  let localFilters: Filters = $derived({ ...data.filters });
   let searchTimeouts: Record<string, number> = {}; // Store timeout IDs per column
-  let isLoading = false; // New state to manage loading  
-  let isSearching = false; // New state to track search-specific loading
-  let currentItems = data.items; // Keep current items during loading
-  let showDetailOverlay = false;
-  let selectedItem: any = null;
+  let isLoading = $state(false); // New state to manage loading  
+  let isSearching = $state(false); // New state to track search-specific loading
+  let currentItems = $derived(data.items); // Keep current items during loading
+  let showDetailOverlay = $state(false);
+  let selectedItem: any = $state(null);
 
   // Initialize filters for filterable columns
-  $: {
+  $effect(() => {
     const filterableCols = columns.filter(c => c.filterable);
     filterableCols.forEach(col => {
       if (!(col.key in localFilters)) {
         localFilters[col.key] = null;
       }
     });
-  }
+  });
 
   // Update current items when new data arrives
-  $: if (!isLoading && !isSearching && data) {
+  $effect(() =>{
+     if (!isLoading && !isSearching && data) {
     currentItems = data.items;
-  }  
+  } }); 
 
   // Handle sorting - cycles through asc -> desc -> none
   function handleSort(key: string) {
@@ -148,7 +146,7 @@
   }
 
   // Cleanup timeouts when component unmounts
-  $: onDestroy(() => {
+  onDestroy(() => {
     for (const key in searchTimeouts) {
       clearTimeout(searchTimeouts[key]);
     }
