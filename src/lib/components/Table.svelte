@@ -166,7 +166,7 @@
                                     {#if col.sortable}
                                         <button 
                                         class="sort-btn-container"
-                                        on:click={() => handleSort(col.key)}
+                                        onclick={() => handleSort(col.key)}
                                         title="Cycle through sorting: Ascending → Descending → None"
                                         >
                                         <div class="sort-icons">
@@ -186,12 +186,12 @@
                                         type="text"
                                         placeholder="Search..."
                                         value={localFilters[col.key] || ''}
-                                        on:input={(e) => handleFilterChange(col.key, e.target.value || null)}
+                                        oninput={(e) => handleFilterChange(col.key, e.target.value || null)}
                                         />
                                     {:else if col.filterType === 'dropdown'}
                                         <select
                                             value={getDropdownValue(col.key)}
-                                            on:change={(e) =>
+                                            onchange={(e) =>
                                                 handleDropdownChange(
                                                     col.key,
                                                     e.target.value || null,
@@ -228,7 +228,7 @@
                             {#if colIndex === 0} <!-- First column gets the clickable link -->
                               <button 
                                 class="detail-link" 
-                                on:click={() => showDetails(item)}
+                                onclick={() => showDetails(item)}
                                 title="View details"
                               >
                                 {item[col.key]}
@@ -247,8 +247,13 @@
     <!-- Pagination Controls -->
     <div class="pagination">
         <button
+            disabled={localPagination.page <= 1} onclick={() => handlePageChange(1)}
+        >
+            First
+        </button>      
+        <button
             disabled={localPagination.page <= 1}
-            on:click={() => handlePageChange(localPagination.page - 1)}
+            onclick={() => handlePageChange(localPagination.page - 1)}
         >
             Previous
         </button>
@@ -261,19 +266,28 @@
         <button
             disabled={localPagination.page >=
                 Math.ceil(localPagination.total / localPagination.size)}
-            on:click={() => handlePageChange(localPagination.page + 1)}
+            onclick={() => handlePageChange(localPagination.page + 1)}
         >
             Next
         </button>
+
+        <button
+            disabled={localPagination.page >=
+                Math.ceil(localPagination.total / localPagination.size)}
+            onclick={() => handlePageChange(Math.ceil(localPagination.total / localPagination.size))}
+        >
+            Last
+        </button>
+        <span class="total-items">Total Items: {localPagination.total}</span>
     </div>
 
   <!-- Detail Overlay -->
   {#if showDetailOverlay && selectedItem}
-    <div class="detail-overlay" on:click={closeDetailOverlay}>
-      <div class="detail-content" on:click|stopPropagation>
+    <div class="detail-overlay" onclick={closeDetailOverlay}>
+      <div class="detail-content" onclick={(event) => event.stopPropagation()}>
         <div class="detail-header">
           <h2>Item Details</h2>
-          <button class="close-btn" on:click={closeDetailOverlay}>&times;</button>
+          <button class="close-btn" onclick={closeDetailOverlay}>&times;</button>
         </div>
         
         <div class="detail-body">
