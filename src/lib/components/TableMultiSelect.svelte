@@ -6,6 +6,7 @@
     Pagination,
     Sorting,
     Filters,
+    FilterOption,
   } from "$lib/types";
   import { onDestroy, onMount } from "svelte";
   import MultiSelect2 from "./MultiSelect2.svelte";
@@ -18,7 +19,7 @@
     sorting: { field: "id", direction: "asc" },
     filters: {},
   });
-  let filterOptions: Record<string, string[]> = $state({});
+  let filterOptions: Record<string, FilterOption[]> = $state({});
 
   let localPagination = $derived({ ...data.pagination });
   let localSorting = $derived({ ...data.sorting });
@@ -322,27 +323,12 @@
                     />
                   {:else if col.filterType === "dropdown"}
                     <MultiSelect2
-                      values={filterOptions[col.key] || []}
-                      selected={columnSelectedValues[col.key]}
+                      values={(filterOptions[col.key] || []).map(opt => opt.value)}
+                      availableOptions={filterOptions[col.key] || []}
                       placeholder="Select..."
                       onchange={(values) =>
                         handleMultiSelectChange(col.key, values)}
                     />
-                    <!-- <select
-                                            value={getDropdownValue(col.key)}
-                                            onchange={(e) =>
-                                                handleDropdownChange(
-                                                    col.key,
-                                                    e.target.value || null,
-                                                )}
-                                        >
-                                            <option value="__ALL__">All</option>
-                                            {#each filterOptions[col.key] || [] as option}
-                                                <option value={option === '' ? '__EMPTY__' : option}>
-                                                  {option === '' ? '(Empty)' : option}
-                                                </option>
-                                            {/each}
-                                        </select> -->
                   {/if}
                 {/if}
               </div>

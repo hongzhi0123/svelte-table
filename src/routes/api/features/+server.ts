@@ -1,4 +1,5 @@
 import { DataStore } from '$lib/stores/regafi_payment';
+import type { FilterOption } from '$lib/types';
 import type { RequestHandler } from './$types';
 
 // const allItems = [
@@ -36,12 +37,6 @@ import type { RequestHandler } from './$types';
 //         category: ['A', 'B', 'C']
 //     };
 // }
-
-interface FilterOption {
-    value: string;
-    count: number;
-    isAvailable: boolean;
-}
 
 export const GET: RequestHandler = async ({ url }) => {
     // Extract parameters

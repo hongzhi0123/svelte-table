@@ -1,7 +1,10 @@
 <!-- MultiSelect.svelte -->
-<script>
+<script lang="ts">
+    import type { FilterOption } from "$lib/types";
+
     let {
-        values: availableOptions = [],
+        values = [], // All possible options (static)
+        availableOptions = [], // Options with availability data
         selected = $bindable([]),
         placeholder = "Filter...",
         onchange,
@@ -26,26 +29,52 @@
     // ✅ Track whether we're in "All" mode vs "None" mode
     let isAllMode = $state(true); // Start in All mode
 
+    // Create a map for quick lookup of availability
+    let availabilityMap = $derived(
+        availableOptions.reduce(
+            (acc, opt) => {
+                acc[opt.value] = opt;
+                return acc;
+            },
+            {} as Record<string, FilterOption>,
+        ),
+    );
+
     // Update isAllMode when selected changes programmatically
     $effect(() => {
-        if (selected.length === availableOptions.length && availableOptions.length > 0) {
+        if (
+            selected.length === values.length &&
+            values.length > 0
+        ) {
             isAllMode = true; // All items individually checked → enter All mode
         }
     });
 
     // Filter values based on search input
     let filteredValues = $derived(
-        availableOptions.filter((v) =>
+        values.filter((v) =>
             v.toLowerCase().includes(searchTerm.toLowerCase()),
         ),
     );
 
+    // let filteredValues = [];
+
     // Check if all values are selected
     let allSelected = $derived(
-        availableOptions.length === 0 ||
+        values.length === 0 ||
             selected?.length === 0 ||
-            availableOptions.every((v) => selected.includes(v)),
+            values.every((v) => selected.includes(v)),
     );
+
+    // Get count for an option (0 if unavailable)
+    function getOptionCount(value: string): number {
+        return availabilityMap[value]?.count ?? 0;
+    }
+
+    // Check if option is available
+    function isOptionAvailable(value: string): boolean {
+        return availabilityMap[value]?.isAvailable ?? false;
+    }
 
     // Check if all filtered values are selected (for Select All in filtered view)
     let allFilteredSelected = $derived(
@@ -125,7 +154,7 @@
     function handleAllChange(event) {
         if (event.target.checked) {
             // Select all values (including those not in current filter)
-            selected = [...availableOptions];
+            selected = [...values];
             isAllMode = true;
         } else {
             // Clear all selections
@@ -135,7 +164,7 @@
 
         if (onchange) {
             onchange(selected);
-        }        
+        }
     }
 
     // Handle Select All in filtered view
@@ -226,7 +255,7 @@
 <div class="multiselect" bind:this={dropdown}>
     <div class="header" bind:this={trigger} onclick={toggleDropdown}>
         <span class="placeholder">
-            {allSelected
+            {isAllMode
                 ? "All"
                 : selected.length > 0
                   ? `${selected.length} selected`
@@ -284,15 +313,26 @@
 
                     <!-- Individual options -->
                     {#each filteredValues as value}
-                        <label class="option">
+                        {@const available = isOptionAvailable(value)}
+                        {@const count = getOptionCount(value)}
+                        <label class="option" class:disabled={!available}>
                             <input
                                 type="checkbox"
-                                checked={isAllMode ||
-                                    selected?.includes(value)}
+                                checked={isAllMode || selected?.includes(value)}
                                 onchange={(e) => handleChange(value, e)}
                                 onclick={handleClick}
-                            />
-                            {value}
+                                disabled={!available}
+                            /> 
+                            <span class="option-label">
+                                {value}
+                                {#if count > 0}
+                                    <span class="count-badge">{count}</span>
+                                {/if}
+                            </span>
+                            {#if !available}
+                                <span class="unavailable-hint">(0 results)</span
+                                >
+                            {/if}
                         </label>
                     {/each}
 

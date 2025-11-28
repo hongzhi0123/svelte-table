@@ -19,9 +19,16 @@ export interface Sorting {
     direction: 'asc' | 'desc';
 }
 
-export interface Filters {
-    [key: string]: string | null;
+export interface FilterOption {
+    value: string;
+    count: number;
+    isAvailable: boolean;
 }
+
+export type Filters = Record<string, string | string[] | null>;
+// export interface Filters {
+//     [key: string]: string | null;
+// }
 
 export interface TableData {
     items: any[];
