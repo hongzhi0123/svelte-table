@@ -23,6 +23,7 @@ export interface FilterOption {
     value: string;
     count: number;
     isAvailable: boolean;
+    isEmpty?: boolean; // ✅ Add marker for empty values
 }
 
 export type Filters = Record<string, string | string[] | null>;

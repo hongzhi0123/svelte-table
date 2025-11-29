@@ -151,8 +151,14 @@
   }
 
   function handleMultiSelectChange(key: string, values: string[]) {
+    // Convert __EMPTY__ back to empty string
+    const cleanedValues = values.map(v => v === '__EMPTY__' ? '' : v);
+
     // Update state with new array reference
-    columnSelectedValues[key] = [...values];
+    columnSelectedValues = {
+        ...columnSelectedValues,
+        [key]: cleanedValues
+    };
 
     const allOptions = filterOptions[key] || [];
     const prev = previousSelectedValues[key] || [];

@@ -1,42 +1,8 @@
 import { DataStore } from '$lib/stores/regafi_payment';
-import type { FilterOption } from '$lib/types';
+import type { Filters, FilterOption } from '$lib/types';
 import type { RequestHandler } from './$types';
 
-// const allItems = [
-//     { 'id': 1, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 2, 'name': 'Item 2', 'category': 'A', 'status': 'Open', date: '2023-01-01' },
-//     { 'id': 3, 'name': 'Data 3', 'category': 'B', 'status': 'Open', date: '2023-01-07' },
-//     { 'id': 4, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 5, 'name': 'Item 2', 'category': '', 'status': 'Closed', date: '2021-05-01' },
-//     { 'id': 6, 'name': 'Data 1', 'category': 'C', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 7, 'name': 'Item 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 8, 'name': 'Item 3', 'category': 'A', 'status': 'Active', date: '2025-01-01' },
-//     { 'id': 9, 'name': 'Item 1', 'category': 'C', 'status': 'Open', date: '2023-01-01' },
-//     { 'id': 10, 'name': 'Data 1', 'category': 'A', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 11, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-02-01' },
-//     { 'id': 12, 'name': 'Item 1', 'category': 'B', 'status': 'Active', date: '2023-01-01' },
-//     { 'id': 13, 'name': 'Item 3', 'category': 'A', 'status': 'Closed', date: '2023-01-01' },
-//     { 'id': 14, 'name': 'Data 1', 'category': 'D', 'status': 'Active', date: '2020-01-01' },
-//     { 'id': 15, 'name': 'Item 1', 'category': 'A', 'status': 'Closed', date: '2021-01-01' },
-//     { 'id': 16, 'name': 'Item 2', 'category': 'A', 'status': 'Active', date: '2023-12-01' },
-// ]; // Replace with actual data
-// const total = allItems.length; // Replace with actual count
-
-
-// Example function to get distinct values for filter options
-// async function getFilterOptions() {
-//     // Replace with your actual database query to get distinct values
-//     // Example:
-//     // const statuses = await db.distinct('status');
-//     // const categories = await db.distinct('category');
-//     // return { status: statuses, category: categories };
-
-//     // Placeholder implementation
-//     return {
-//         status: ['Active', 'Inactive', 'Pending'],
-//         category: ['A', 'B', 'C']
-//     };
-// }
+const exactMatchColumns = ['status', 'category', 'type']; // Dropdown columns            
 
 export const GET: RequestHandler = async ({ url }) => {
     // Extract parameters
@@ -44,22 +10,11 @@ export const GET: RequestHandler = async ({ url }) => {
     const size = parseInt(url.searchParams.get('size') || '10');
     const sort = url.searchParams.get('sort') || 'id';
     const order = url.searchParams.get('order') || 'asc';
-    const filters: Record<string, string> = {};
-    const searchFilters: Record<string, string> = {};
+    let filters: Filters = {};
+    let searchFilters: Record<string, string> = {};
 
     // Collect filters
-    for (const [key, value] of url.searchParams.entries()) {
-        if (['page', 'size', 'sort', 'order'].indexOf(key) === -1 && (value != null && value !== undefined)) {
-            // Define which columns use exact match (dropdown) vs partial match (search)
-            const exactMatchColumns = ['status', 'category', 'type']; // Dropdown columns            
-
-            if (exactMatchColumns.includes(key)) {
-                filters[key] = value; // Exact match for dropdown filters
-            } else {
-                searchFilters[key] = value; // Partial match for search inputs
-            }
-        }
-    }
+    ({ filters, searchFilters } = parseFilters(url.searchParams, exactMatchColumns));
 
     const tppStore = new DataStore();
     const allItems = await tppStore.getAll();
@@ -109,50 +64,6 @@ export const GET: RequestHandler = async ({ url }) => {
     const end = start + size;
     const items = sortedItems.slice(start, end); // Only items for current page
 
-    // 4. GENERATE FILTER OPTIONS FROM ORIGINAL DATASET
-    const getFilterOptions = () => {
-        const options: Record<string, FilterOption[]> = {};
-        // Define which columns should have dropdown filters
-        const dropdownColumns = ['status', 'type', 'category']; // Define which fields are filterable
-
-        for (const currentColumn of dropdownColumns) {
-            // 1. Get ALL distinct values (complete domain)
-            const allValues = new Set(allItems.map(item => item[currentColumn]));
-
-            // Create filters WITHOUT the current column
-            const filtersWithoutColumn = { ...filters };
-            delete filtersWithoutColumn[currentColumn];
-            
-            // Apply all OTHER filters to get base items for counting
-            const baseItems = applyFilters(allItems, filtersWithoutColumn);
-
-            // 2. Count occurrences in the CURRENT filtered result set
-            const valueCounts = new Map<string, number>();
-            for (const item of baseItems) {
-                const val = item[currentColumn];
-                valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
-            }
-
-            // 3. Build FilterOption array with availability info
-            options[currentColumn] = Array.from(allValues).map(value => ({
-                value,
-                count: valueCounts.get(value) || 0,
-                isAvailable: valueCounts.has(value) && valueCounts.get(value)! > 0
-            }))
-                .sort((a, b) => {
-                    // Sort: available first, then by count (desc), then alphabetically
-                    if (a.isAvailable && !b.isAvailable) return -1;
-                    if (!a.isAvailable && b.isAvailable) return 1;
-                    if (a.count !== b.count) return b.count - a.count; // Higher counts first
-                    if (a.value === '') return -1; // Empty strings at top
-                    if (b.value === '') return 1;
-                    return a.value.localeCompare(b.value);
-                });
-        }
-
-        return options;
-    };
-
     return new Response(
         JSON.stringify({
             data: {
@@ -161,7 +72,7 @@ export const GET: RequestHandler = async ({ url }) => {
                 sorting: { field: sort, direction: order as 'asc' | 'desc' },
                 filters: { ...filters, ...searchFilters } // Combine both types of filters
             },
-            filterOptions: getFilterOptions() // Available options for dropdowns
+            filterOptions: getFilterOptions(allItems, filters, exactMatchColumns) // Available options for dropdowns
         }),
         {
             headers: { 'Content-Type': 'application/json' }
@@ -169,21 +80,90 @@ export const GET: RequestHandler = async ({ url }) => {
     );
 };
 
-function applyFilters(items, filters) {
-    // if (Object.keys(filters).length > 0) {
-        return items.filter(item => {
-            for (const [key, values] of Object.entries(filters)) {
-                // if (item[key] != value) { // Use != for loose comparison
-                //     return false;
-                // }
-                if (values && values.length > 0) {
-                    // OR logic within column: item must match at least one selected value
-                    if (!values.includes(item[key])) {
-                        return false; // Doesn't match this filter
-                    }
-                }                
+function parseFilters(searchParams: URLSearchParams, dropdownColumns ) {
+    const filters: Filters = {};
+    const searchFilters: Record<string, string> = {};
+
+    for (const [key, value] of searchParams.entries()) {
+        if (['page', 'size', 'sort', 'order'].indexOf(key) === -1 && (value != null && value !== undefined)) {
+            // Define which columns use exact match (dropdown) vs partial match (search)
+
+            if (dropdownColumns.includes(key)) {
+                const values = value.split(',');
+                if (values.length > 0) {
+                    // Handle special marker for empty strings
+                    filters[key] = values.map(v => v === '__EMPTY__' ? '' : v);
+                } else {
+                    filters[key] = null; // No filter
+                }
+                // filters[key] = values; // Exact match for dropdown filters
+            } else {
+                searchFilters[key] = value; // Partial match for search inputs
             }
-            return true;
-        });
+        }
+    }
+
+    return { filters, searchFilters };
+}
+
+function applyFilters(items, filters: Filters) {
+    // if (Object.keys(filters).length > 0) {
+    return items.filter(item => {
+        for (const [key, values] of Object.entries(filters)) {
+            // if (item[key] != value) { // Use != for loose comparison
+            //     return false;
+            // }
+            if (values && values.length > 0) {
+                // OR logic within column: item must match at least one selected value
+                if (!values.includes(item[key])) {
+                    return false; // Doesn't match this filter
+                }
+            }
+        }
+        return true;
+    });
     // }
 }
+
+function getFilterOptions(allItems: any[], filters: Filters, dropdownColumns) {
+    const options: Record<string, FilterOption[]> = {};
+
+    for (const currentColumn of dropdownColumns) {
+        // 1. Get ALL distinct values (complete domain)
+        const allValues = new Set(allItems.map(item => item[currentColumn]));
+
+        // Create filters WITHOUT the current column
+        const filtersWithoutColumn = { ...filters };
+        delete filtersWithoutColumn[currentColumn];
+
+        // Apply all OTHER filters to get base items for counting
+        const baseItems = applyFilters(allItems, filtersWithoutColumn);
+
+        // 2. Count occurrences in the CURRENT filtered result set
+        const valueCounts = new Map<string, number>();
+        for (const item of baseItems) {
+            const val = item[currentColumn];
+            valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
+        }
+
+        // 3. Build FilterOption array with availability info
+        options[currentColumn] = Array.from(allValues).map(value => ({
+            value: value === '' ? '__EMPTY__' : value, // ✅ Use marker for empty
+            // displayValue: value === '' ? '(Empty)' : value, // ✅ Human-readable
+            count: valueCounts.get(value) || 0,
+            isAvailable: valueCounts.has(value) && valueCounts.get(value)! > 0,
+            isEmpty: value === ''
+        }))
+            .sort((a, b) => {
+                // Sort: available first, then by count (desc), then alphabetically
+                if (a.isAvailable && !b.isAvailable) return -1;
+                if (!a.isAvailable && b.isAvailable) return 1;
+                if (a.count !== b.count) return b.count - a.count; // Higher counts first
+                if (a.value === '') return -1; // Empty strings at top
+                if (b.value === '') return 1;
+                return a.value.localeCompare(b.value);
+            });
+    }
+
+    return options;
+};

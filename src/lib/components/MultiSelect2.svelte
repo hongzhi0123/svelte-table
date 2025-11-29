@@ -26,6 +26,15 @@
         console.log("========================");
     });
 
+    // Map values for display
+    let displayValues = $derived(
+        values.map(v => ({
+            raw: v,
+            display: v === '__EMPTY__' ? '(Empty)' : v,
+            isEmpty: v === '__EMPTY__'
+        }))
+    );
+
     // ✅ Track whether we're in "All" mode vs "None" mode
     let isAllMode = $state(true); // Start in All mode
 
@@ -312,19 +321,19 @@
                     {/if}
 
                     <!-- Individual options -->
-                    {#each filteredValues as value}
-                        {@const available = isOptionAvailable(value)}
-                        {@const count = getOptionCount(value)}
+                    {#each displayValues as opt}
+                        {@const available = isOptionAvailable(opt.raw)}
+                        {@const count = getOptionCount(opt.raw)}
                         <label class="option" class:disabled={!available}>
                             <input
                                 type="checkbox"
-                                checked={isAllMode || selected?.includes(value)}
-                                onchange={(e) => handleChange(value, e)}
+                                checked={isAllMode || selected?.includes(opt.raw)}
+                                onchange={(e) => handleChange(opt.raw, e)}
                                 onclick={handleClick}
                                 disabled={!available}
                             /> 
                             <span class="option-label">
-                                {value}
+                                {opt.display}
                                 {#if count > 0}
                                     <span class="count-badge">{count}</span>
                                 {/if}
