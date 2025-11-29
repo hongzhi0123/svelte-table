@@ -35,6 +35,19 @@
         }))
     );
 
+    // Add derived store for total count
+    let totalCount = $derived(
+        availableOptions.reduce((sum, opt) => sum + (opt.count || 0), 0)
+    );
+
+    // Calculate count for currently selected items only
+    let selectedCount = $derived(
+        selected.reduce((sum, val) => {
+            const option = availableOptions.find(opt => opt.value === val);
+            return sum + (option?.count || 0);
+        }, 0)
+    );
+
     // ✅ Track whether we're in "All" mode vs "None" mode
     let isAllMode = $state(true); // Start in All mode
 
@@ -299,7 +312,9 @@
                             onchange={handleAllChange}
                             onclick={handleClick}
                         />
-                        <span class="all-text">All</span>
+                        <span class="all-text">All
+                            <span class="count-badge">{selectedCount} of {totalCount}</span>
+                        </span>
                     </label>
 
                     <div class="divider"></div>
@@ -455,6 +470,10 @@
 
     .all-text {
         font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;        
     }
 
     .select-all-filtered {
@@ -494,4 +513,30 @@
         background-color: #dc3545;
         color: white;
     }
+
+    .option.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .option-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    .count-badge {
+        background: #e0e0e0;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        margin-left: 8px;
+    }
+    
+    .unavailable-hint {
+        font-size: 11px;
+        color: #999;
+        margin-left: 4px;
+    }    
 </style>
