@@ -65,17 +65,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const allItems = await tppStore.getAll();
 
     // 1. APPLY EXACT MATCH FILTERS (dropdown-style)
-    let filteredItems = allItems;
-    if (Object.keys(filters).length > 0) {
-        filteredItems = allItems.filter(item => {
-            for (const [key, value] of Object.entries(filters)) {
-                if (item[key] != value) { // Use != for loose comparison
-                    return false;
-                }
-            }
-            return true;
-        });
-    }
+    let filteredItems = applyFilters(allItems, filters);
 
     // 2. APPLY PARTIAL MATCH SEARCH (search input-style)
     if (Object.keys(searchFilters).length > 0) {
@@ -125,19 +115,26 @@ export const GET: RequestHandler = async ({ url }) => {
         // Define which columns should have dropdown filters
         const dropdownColumns = ['status', 'type', 'category']; // Define which fields are filterable
 
-        for (const key of dropdownColumns) {
-            // 1. Get ALL possible values from the full dataset
-            const allValues = new Set(allItems.map(item => item[key]));
+        for (const currentColumn of dropdownColumns) {
+            // 1. Get ALL distinct values (complete domain)
+            const allValues = new Set(allItems.map(item => item[currentColumn]));
+
+            // Create filters WITHOUT the current column
+            const filtersWithoutColumn = { ...filters };
+            delete filtersWithoutColumn[currentColumn];
+            
+            // Apply all OTHER filters to get base items for counting
+            const baseItems = applyFilters(allItems, filtersWithoutColumn);
 
             // 2. Count occurrences in the CURRENT filtered result set
             const valueCounts = new Map<string, number>();
-            for (const item of filteredItems) {
-                const val = item[key];
+            for (const item of baseItems) {
+                const val = item[currentColumn];
                 valueCounts.set(val, (valueCounts.get(val) || 0) + 1);
             }
 
             // 3. Build FilterOption array with availability info
-            options[key] = Array.from(allValues).map(value => ({
+            options[currentColumn] = Array.from(allValues).map(value => ({
                 value,
                 count: valueCounts.get(value) || 0,
                 isAvailable: valueCounts.has(value) && valueCounts.get(value)! > 0
@@ -171,3 +168,22 @@ export const GET: RequestHandler = async ({ url }) => {
         }
     );
 };
+
+function applyFilters(items, filters) {
+    // if (Object.keys(filters).length > 0) {
+        return items.filter(item => {
+            for (const [key, values] of Object.entries(filters)) {
+                // if (item[key] != value) { // Use != for loose comparison
+                //     return false;
+                // }
+                if (values && values.length > 0) {
+                    // OR logic within column: item must match at least one selected value
+                    if (!values.includes(item[key])) {
+                        return false; // Doesn't match this filter
+                    }
+                }                
+            }
+            return true;
+        });
+    // }
+}
