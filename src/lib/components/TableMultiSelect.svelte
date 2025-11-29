@@ -1,7 +1,6 @@
 <script lang="ts">
   import { fetchTableData } from "$lib/api";
   import type {
-    ColumnConfig,
     TableData,
     Pagination,
     Sorting,
@@ -178,69 +177,6 @@
       localPagination.page = 1;
       loadData(localPagination, localSorting, localFilters);
     }
-  }
-
-  // New handler for multi-select changes
-  // function handleMultiSelectChange(key: string, values: string[]) {
-  //   const prev = previousSelectedValues[key] || [];
-  //   const current = values;
-
-  //   // ✅ Store current as previous for next call
-  //   previousSelectedValues[key] = current;
-
-  //   // Get all options for this column
-  //   const allOptions = filterOptions[key] || [];
-
-  //   // Detect: Was "All" just unchecked?
-  //   // Condition: Previously had all options, now has none
-  //   const wasAllSelected = prev.length === allOptions.length && prev.length > 0;
-  //   const nowEmpty = current.length === 0;
-
-  //   if (wasAllSelected && nowEmpty) {
-  //       // User unchecked "All" - just update state, DON'T filter
-  //       columnSelectedValues[key] = values;
-  //       localFilters = { ...localFilters, [key]: null };
-  //       // ✅ NO loadData() call - user is still "preparing" their selection
-  //       return;
-  //   }
-
-  //   // ✅ Normal filtering for all other cases
-  //   columnSelectedValues[key] = values;
-
-  //   // If nothing selected or all values selected, treat as "All" (no filter)
-  //   if (values.length === 0 || values.length === allOptions.length) {
-  //     handleFilterChange(key, null); // null = no filter
-  //   } else {
-  //     // For multi-select, pass the array directly
-  //     // Update your Filters type to accept: Record<string, string | string[] | null>
-  //     localFilters = { ...localFilters, [key]: values };
-  //     localPagination.page = 1;
-  //     loadData(localPagination, localSorting, localFilters);
-  //   }
-  // }
-
-  // Handle dropdown change specifically for distinguishing "All" from empty values
-  function handleDropdownChange(key: string, value: string) {
-    if (value === "__ALL__") {
-      // "All" option selected - remove filter
-      handleFilterChange(key, null);
-    } else if (value === "__EMPTY__") {
-      handleFilterChange(key, "");
-    } else {
-      // Actual value selected
-      handleFilterChange(key, value);
-    }
-  }
-
-  // Get the current value for the select element (with special handling for "All")
-  function getDropdownValue(key: string): string {
-    const currentFilter = localFilters[key];
-    if (currentFilter === null) {
-      return "__ALL__"; // Show "All" when no filter is applied
-    } else if (currentFilter === "") {
-      return "__EMPTY__"; // Show special value for empty string
-    }
-    return currentFilter || ""; // Return actual value or empty string
   }
 
   // Handle pagination change

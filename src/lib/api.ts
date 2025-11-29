@@ -1,4 +1,4 @@
-import type { TableData, Pagination, Sorting, Filters } from '$lib/types';
+import type { TableData, Pagination, Sorting, Filters, FilterOption } from '$lib/types';
 
 export interface FilterOptionsResponse {
     filterOptions: Record<string, string[]>;
@@ -9,7 +9,7 @@ export async function fetchTableData(
     pagination: Pagination,
     sorting: Sorting,
     filters: Filters
-): Promise<{ data: TableData; filterOptions: Record<string, string[]> }> {
+): Promise<{ data: TableData; filterOptions: Record<string, FilterOption[]> }> {
     const params = new URLSearchParams({
         page: pagination.page.toString(),
         size: pagination.size.toString(),
