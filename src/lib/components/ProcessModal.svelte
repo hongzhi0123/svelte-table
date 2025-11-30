@@ -19,7 +19,7 @@
 
 	// Function to add a log message
 	const addLog = (msg) => {
-		logs.push(msg);
+		logs = [...logs, msg]; // Svelte 5 Reactivity
 	};
 
 	// Function to set the final result
@@ -38,6 +38,7 @@
 	const startProcess = () => {
 		if (isRunning) return;
 		isRunning = true;
+		let resultReceived = false; // Reset on start
 		logs = ['Connecting to server...'];
 
 		const url = `/process?job=${encodeURIComponent(job)}`;
@@ -54,6 +55,7 @@
 			try {
 				const parsedResult = JSON.parse(e.data);
 				setResult(parsedResult);
+				resultReceived = true; // Mark as received
 			} catch (err) {
 				console.error('Failed to parse result from SSE:', err);
 				addLog('⚠️ Failed to parse final result.');
@@ -62,9 +64,12 @@
 		});
 
 		eventSource.onerror = () => {
-			addLog('⚠️ Connection failed');
+			// Only show error if no result was received
+			if (!resultReceived) {
+				addLog('⚠️ Connection failed');
+				showError = true; // Set error flag
+			}
 			stopProcess(); // Stop the process on error
-			showError = true; // Set error flag			
 		};
 	};
 
@@ -349,7 +354,7 @@
 		white-space: pre-wrap; /* Allow wrapping for long lines */
 		word-break: break-all; /* Break long lines */
 	}
-	
+
 	/* Optional: Add global styles for the modal open state */
 	:global(body.modal-open) {
 		overflow: hidden;
