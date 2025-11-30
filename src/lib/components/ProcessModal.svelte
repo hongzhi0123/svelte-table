@@ -16,6 +16,8 @@
 	let eventSource = $state(null);
 	let result = $state(null); // State to hold the final result
 	let showError = $state(false); // State to track if an error occurred during stream
+    let progress = $state({ percent: 0, message: '' });
+    let showProgress = $state(false);
 
 	// Function to add a log message
 	const addLog = (msg) => {
@@ -49,6 +51,16 @@
 			// So e.data contains the actual log message
 			addLog(e.data);
 		};
+
+        eventSource.addEventListener('progress', (e) => {
+            try {
+                const parsedProgress = JSON.parse(e.data);
+                progress = parsedProgress;
+                showProgress = true; // ✅ Show progress bar on first update
+            } catch (err) {
+                console.error('Failed to parse progress:', err);
+            }
+        });		
 
 		// Listen for the custom 'result' event
 		eventSource.addEventListener('result', (e) => {
@@ -95,6 +107,8 @@
 		logs = [];
 		result = null;
 		showError = false;
+		progress = { percent: 0, message: '' }; // ✅ Reset
+        showProgress = false;
 		// Update the bound prop to close the modal
 		open = false;
 	};
@@ -179,6 +193,23 @@
 						</div>
 					{/if}
 				</div>
+
+                <!-- Progress Bar -->
+                {#if showProgress}
+                    <div class="progress-section">
+                        <div class="progress-bar-container" >
+                            <div 
+                                class="progress-bar-fill" 
+                                style={`width: ${progress.percent}%`}
+                                class:complete={progress.percent >= 100}
+                            ></div>
+                        </div>
+                        <div class="progress-text">
+                            {Math.round(progress.percent)}% 
+                            {#if progress.message} - {progress.message}{/if}
+                        </div>
+                    </div>
+                {/if}
 
 				<!-- Log Area -->
 				<div id="log-area" class="log-area"
@@ -354,6 +385,42 @@
 		white-space: pre-wrap; /* Allow wrapping for long lines */
 		word-break: break-all; /* Break long lines */
 	}
+
+	/* Progress Bar Section */
+	.progress-section {
+		margin: 0 0 1rem 0;
+	}
+
+	.progress-bar-container {
+		width: 100%;
+		height: 20px;
+		background-color: #e5e7eb; /* Tailwind gray-200 */
+		border-radius: 9999px;
+		overflow: hidden;
+		position: relative;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+	}
+
+	.progress-bar-fill {
+		height: 100%;
+		background-color: #3b82f6; /* Tailwind blue-500 */
+		transition: width 0.3s ease-in-out;
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		padding-right: 0.5rem;
+	}
+
+	.progress-bar-fill.complete {
+		background-color: #10b981; /* Tailwind green-500 */
+	}
+
+	.progress-text {
+		margin-top: 0.5rem;
+		font-size: 0.875rem;
+		color: #6b7280; /* Tailwind gray-500 */
+		text-align: center;
+	}	
 
 	/* Optional: Add global styles for the modal open state */
 	:global(body.modal-open) {

@@ -18,10 +18,10 @@ export const GET = async ({ url }) => {
 
     const stream = new ReadableStream({
         start(controller) {
-            const { log, sendResult } = createSSEHandlers(controller);
+            const { log, sendResult, sendProgress } = createSSEHandlers(controller);
 
             // Run job in background
-            JOBS[jobName](log, sendResult)
+            JOBS[jobName](log, sendResult, sendProgress)
                 .then(() => {
                     // The job function itself calls sendResult (if successful).
                     // We just close the stream here after the job promise resolves.

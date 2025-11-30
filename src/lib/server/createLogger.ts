@@ -2,10 +2,12 @@
 
 export type Logger = (msg: string) => void;
 export type ResultSender<T = any> = (result: T) => void;
+export type ProgressSender = (progress: { percent: number; message?: string }) => void;
 
 interface SSEHandlers<T = any> {
     log: Logger;
     sendResult: ResultSender<T>;
+    sendProgress: ProgressSender;
 }
 
 export function createSSEHandlers<T = any>(controller: ReadableStreamController<Uint8Array>): SSEHandlers<T> {
@@ -29,6 +31,17 @@ export function createSSEHandlers<T = any>(controller: ReadableStreamController<
         }
     };
 
+    const sendProgress: ProgressSender = (progress) => {
+        try {
+            if (controller.desiredSize === null || controller.desiredSize <= 0) return;
+            const progressStr = JSON.stringify(progress);
+            const chunk = `event: progress\ndata: ${progressStr}\n\n`;
+            controller.enqueue(encoder.encode(chunk));
+        } catch (e) {
+            console.warn("Failed to send progress:", e.message);
+        }
+    };    
+
     const sendResult: ResultSender<T> = (result: T) => {
         try {
             // Check if the stream is still writable before enqueuing
@@ -47,5 +60,5 @@ export function createSSEHandlers<T = any>(controller: ReadableStreamController<
         }
     };
 
-    return { log, sendResult };
+    return { log, sendResult, sendProgress };
 }
