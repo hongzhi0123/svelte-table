@@ -14,10 +14,24 @@
 	let logs = $state([]);
 	let isRunning = $state(false);
 	let eventSource = $state(null);
+	let result = $state(null); // State to hold the final result
+	let showError = $state(false); // State to track if an error occurred during stream
 
 	// Function to add a log message
 	const addLog = (msg) => {
 		logs.push(msg);
+	};
+
+	// Function to set the final result
+	const setResult = (res) => {
+		result = res;
+		// Optionally, log the result status
+		if (res.success) {
+			addLog(`✅ Result: ${res.message || 'Process completed successfully.'}`);
+		} else {
+			addLog(`❌ Result: ${res.error || res.message || 'Process failed.'}`);
+			showError = true; // Set error flag if result indicates failure
+		}
 	};
 
 	// Function to start the process
@@ -35,9 +49,22 @@
 			addLog(e.data);
 		};
 
+		// Listen for the custom 'result' event
+		eventSource.addEventListener('result', (e) => {
+			try {
+				const parsedResult = JSON.parse(e.data);
+				setResult(parsedResult);
+			} catch (err) {
+				console.error('Failed to parse result from SSE:', err);
+				addLog('⚠️ Failed to parse final result.');
+				showError = true;
+			}
+		});
+
 		eventSource.onerror = () => {
 			addLog('⚠️ Connection failed');
 			stopProcess(); // Stop the process on error
+			showError = true; // Set error flag			
 		};
 	};
 
@@ -48,7 +75,9 @@
 			eventSource = null;
 		}
 		isRunning = false;
-		addLog('⏹️ Stopped by user.');
+		if (!result) { // Only add stop message if no result was received yet
+			addLog('⏹️ Stopped by user.');
+		}
 	};
 
 	// Function to close the modal
@@ -59,6 +88,8 @@
 		// Reset internal state
 		isRunning = false;
 		logs = [];
+		result = null;
+		showError = false;
 		// Update the bound prop to close the modal
 		open = false;
 	};
@@ -155,6 +186,13 @@
 					{#if logs.length === 0}
 						<div class="empty-log">No logs yet.</div>
 					{/if}
+					<!-- Display the final result if available -->
+					{#if result}
+						<div class="result-section">
+							<h3>Final Result:</h3>
+							<pre class="result-json">{JSON.stringify(result, null, 2)}</pre>
+						</div>
+					{/if}					
 				</div>
 			</div>
 		</div>
@@ -284,6 +322,34 @@
 		font-style: italic;
 	}
 
+	/* Result Section */
+	.result-section {
+		margin-top: 1rem;
+		padding: 0.5rem;
+		border-top: 1px solid #555;
+		background-color: #1e1e1e; /* Slightly lighter than log bg */
+		border-radius: 2px;
+	}
+
+	.result-section h3 {
+		margin: 0 0 0.5rem 0;
+		color: #a3bffa; /* Light blue for header */
+		font-size: 1rem;
+	}
+
+	.result-json {
+		margin: 0;
+		padding: 0.5rem;
+		background-color: #0d1117;
+		color: #d4d4d4;
+		border: 1px solid #333;
+		border-radius: 2px;
+		font-size: 0.8rem;
+		overflow-x: auto;
+		white-space: pre-wrap; /* Allow wrapping for long lines */
+		word-break: break-all; /* Break long lines */
+	}
+	
 	/* Optional: Add global styles for the modal open state */
 	:global(body.modal-open) {
 		overflow: hidden;

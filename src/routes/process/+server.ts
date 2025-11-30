@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { createLogger } from '$lib/server/createLogger';
+import { createSSEHandlers } from '$lib/server/createLogger';
 import { simulateUpdate, backupDatabase } from './jobs';
 
 const JOBS = {
@@ -18,23 +18,27 @@ export const GET = async ({ url }) => {
 
 	const stream = new ReadableStream({
 		start(controller) {
-			const log = createLogger(controller);
+			const { log, sendResult } = createSSEHandlers(controller);
 
 			// Run job in background
-			JOBS[jobName](log)
+			JOBS[jobName](log, sendResult)
 				.then(() => {
+					// The job function itself calls sendResult, so we just close the stream here.
+					// The result event is already sent.					
 					controller.close();
 				})
 				.catch((err) => {
 					log(`❌ Job failed: ${err.message}`);
+					// Optionally, also send an error result
+					sendResult({ success: false, error: err.message });
 					controller.error(err);
 				});
 
 			// Optional: handle client disconnect
-			return () => {
-				// In real apps, you'd signal cancellation via AbortSignal,
-				// but for demo, we let job finish (or use job cancellation pattern).
-			};
+			// Note: The job function runs to completion even if the client disconnects,
+			// unless explicitly designed to check for cancellation signals.
+			// For simplicity here, we don't implement cancellation.
+			// return () => { /* cleanup if needed */ };
 		}
 	});
 
@@ -46,3 +50,4 @@ export const GET = async ({ url }) => {
 		}
 	});
 };
+

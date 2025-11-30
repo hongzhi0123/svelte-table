@@ -1,7 +1,7 @@
 // src/routes/process/jobs.ts
-import type { Logger } from '$lib/server/createLogger';
+import type { Logger, ResultSender } from '$lib/server/createLogger';
 
-export async function simulateUpdate(log: Logger) {
+export async function simulateUpdate(log: Logger, sendResult: ResultSender) {
 	log('🔍 Starting system update...');
 	await sleep(800);
 
@@ -11,9 +11,11 @@ export async function simulateUpdate(log: Logger) {
 	}
 
 	log('🚀 Update finished successfully!');
+    // Send the final result
+	sendResult({ success: true, output: "v1.2.3", message: "Update completed successfully." });
 }
 
-export async function backupDatabase(log: Logger) {
+export async function backupDatabase(log: Logger, sendResult: ResultSender) {
 	log('💾 Starting database backup...');
 	await sleep(500);
 	log('📦 Exporting tables...');
@@ -21,6 +23,8 @@ export async function backupDatabase(log: Logger) {
 	log('🔐 Compressing archive...');
 	await sleep(700);
 	log('📤 Backup uploaded to cloud');
+    // Send the final result
+	sendResult({ success: true, backupId: "bkp_12345", size: "2.4GB", message: "Backup completed." });
 }
 
 // Helper
