@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { Logger, ResultSender, ProgressSender } from './createLogger';
+import type { Logger, ResultSender, ProgressSender } from './sseLogger';
 
 export interface JobContext {
     log: Logger;
@@ -25,4 +25,10 @@ export function getJobLogger(): Logger | null {
 // Get the full context from anywhere
 export function getJobContext(): JobContext | null {
     return storage.getStore() ?? null;
+}
+
+export function mustGetJobContext(): JobContext {
+    const ctx = getJobContext();
+    if (!ctx) throw new Error('Job must be run within a job context');
+    return ctx;
 }

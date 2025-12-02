@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { createSSEHandlers } from '$lib/server/createLogger'; // Update import path if renamed
+import { createSSEHandlers } from '$lib/server/sseLogger'; // Update import path if renamed
 import { simulateUpdate, backupDatabase } from './jobs';
 import { runWithJobContext } from '$lib/server/jobContext';
 
@@ -20,6 +20,7 @@ export const GET = async ({ url }) => {
     const stream = new ReadableStream({
         start(controller) {
             const handlers = createSSEHandlers(controller);
+			const { log, sendResult } = handlers;
 
             // Run job in background
 			runWithJobContext(handlers, () =>
@@ -34,10 +35,10 @@ export const GET = async ({ url }) => {
 					})
 					.catch((err) => {
 						// Log the error via SSE
-						handlers.log(`❌ Job failed: ${err.message}`);
+						log(`❌ Job failed: ${err.message}`);
 						// Optionally, also send an error result via SSE
 						// The try/catch in sendResult will handle if the stream is closed here too.
-						handlers.sendResult({ success: false, error: err.message });
+						sendResult({ success: false, error: err.message });
 						// Important: Call controller.error to signal the stream ended in error state
 						controller.error(err);
 					})
