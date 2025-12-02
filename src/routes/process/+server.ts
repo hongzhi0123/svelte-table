@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import { createSSEHandlers } from '$lib/server/createLogger'; // Update import path if renamed
 import { simulateUpdate, backupDatabase } from './jobs';
+import { runWithJobContext } from '$lib/server/jobContext';
 
 const JOBS = {
     simulateUpdate,
@@ -18,28 +19,29 @@ export const GET = async ({ url }) => {
 
     const stream = new ReadableStream({
         start(controller) {
-            const { log, sendResult, sendProgress } = createSSEHandlers(controller);
+            const handlers = createSSEHandlers(controller);
 
             // Run job in background
-            JOBS[jobName](log, sendResult, sendProgress)
-                .then(() => {
-                    // The job function itself calls sendResult (if successful).
-                    // We just close the stream here after the job promise resolves.
-                    // Be careful: if sendResult enqueues data, closing immediately might cut it off.
-                    // However, closing after the promise resolves is standard.
-                    // The try/catch in sendResult should handle if the stream is already closed.
-                    controller.close();
-                })
-                .catch((err) => {
-                    // Log the error via SSE
-                    log(`❌ Job failed: ${err.message}`);
-                    // Optionally, also send an error result via SSE
-                    // The try/catch in sendResult will handle if the stream is closed here too.
-                    sendResult({ success: false, error: err.message });
-                    // Important: Call controller.error to signal the stream ended in error state
-                    controller.error(err);
-                });
-
+			runWithJobContext(handlers, () =>
+				JOBS[jobName]()
+					.then(() => {
+						// The job function itself calls sendResult (if successful).
+						// We just close the stream here after the job promise resolves.
+						// Be careful: if sendResult enqueues data, closing immediately might cut it off.
+						// However, closing after the promise resolves is standard.
+						// The try/catch in sendResult should handle if the stream is already closed.
+						controller.close();
+					})
+					.catch((err) => {
+						// Log the error via SSE
+						handlers.log(`❌ Job failed: ${err.message}`);
+						// Optionally, also send an error result via SSE
+						// The try/catch in sendResult will handle if the stream is closed here too.
+						handlers.sendResult({ success: false, error: err.message });
+						// Important: Call controller.error to signal the stream ended in error state
+						controller.error(err);
+					})
+				);
             // Optional: Handle client disconnect (e.g., using controller.signal)
             // For simplicity, we don't implement cancellation here.
             // The job runs to completion server-side regardless of client disconnection,

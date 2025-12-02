@@ -1,14 +1,19 @@
 // src/routes/process/jobs.ts
-import type { Logger, ProgressSender, ResultSender } from '$lib/server/createLogger';
+import { getJobContext } from '$lib/server/jobContext';
 
-export async function simulateUpdate(log: Logger, sendResult: ResultSender, sendProgress: ProgressSender) {
+export async function simulateUpdate() {
+    const context = getJobContext();
+    if (!context) throw new Error('Job must be run within a job context');
+    
+    const { log, sendResult, sendProgress } = context;
+
 	log('🔍 Starting system update...');
 	await sleep(800);
 
     const totalSteps = 5;
 	for (let i = 1; i <= totalSteps; i++) {
 		log(`✅ Step ${i}/5 completed`);
-        sendProgress({ 
+        sendProgress?.({ 
             percent: (i / totalSteps) * 100, 
             message: `Step ${i}/${totalSteps}` 
         });        
@@ -20,18 +25,23 @@ export async function simulateUpdate(log: Logger, sendResult: ResultSender, send
 	sendResult({ success: true, output: "v1.2.3", message: "Update completed successfully." });
 }
 
-export async function backupDatabase(log: Logger, sendResult: ResultSender, sendProgress: ProgressSender) {
+export async function backupDatabase() {
+    const context = getJobContext();
+    if (!context) throw new Error('Job must be run within a job context');
+    
+    const { log, sendResult, sendProgress } = context;
+
 	log('💾 Starting database backup...');
-    sendProgress({ percent: 10, message: "Initializing..." });
+    sendProgress?.({ percent: 10, message: "Initializing..." });
 	await sleep(500);
 	log('📦 Exporting tables...');
-    sendProgress({ percent: 40, message: "Initializing..." });
+    sendProgress?.({ percent: 40, message: "Initializing..." });
 	await sleep(1000);
 	log('🔐 Compressing archive...');
-    sendProgress({ percent: 70, message: "Initializing..." });
+    sendProgress?.({ percent: 70, message: "Initializing..." });
 	await sleep(700);
 	log('📤 Backup uploaded to cloud');
-    sendProgress({ percent: 100, message: "Initializing..." });
+    sendProgress?.({ percent: 100, message: "Initializing..." });
     // Send the final result
 	sendResult({ success: true, backupId: "bkp_12345", size: "2.4GB", message: "Backup completed." });
 }
